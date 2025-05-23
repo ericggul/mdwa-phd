@@ -24,9 +24,7 @@ export default function Home() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <MainContainer>
-        {/* <InteractivePresentation /> */}
-        <ThreeDPresentation />
-
+        <InteractivePresentation />
       </MainContainer>
     </>
   );

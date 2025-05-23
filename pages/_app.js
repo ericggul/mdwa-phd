@@ -5,34 +5,47 @@ import theme from '../styles/theme';
 import { useEffect, useState } from 'react';
 
 export default function App({ Component, pageProps }) {
-  const [windowReady, setWindowReady] = useState(false);
+  console.log("App component rendering");
+  const [isClient, setIsClient] = useState(false);
+  console.log("App component - initial isClient:", isClient);
 
   useEffect(() => {
-    setWindowReady(true);
+    console.log("App component - useEffect running");
+    setIsClient(true); // Set to true once mounted on the client
+
     const handleResize = () => {
-      // We need to update the theme object directly, this is a bit of a hack
-      // but necessary for styled-components to pick up the new values without
-      // a full re-render of the ThemeProvider, which can be costly.
-      theme.windowWidth = window.innerWidth;
-      theme.windowHeight = window.innerHeight;
-      // Force a re-render of components that use the theme by updating a dummy state
-      // This is not ideal, but a common workaround.
-      // A more robust solution might involve a context API or a state management library.
-      setWindowReady(prev => !prev); // Toggle to ensure re-render
+      console.log("App component - handleResize called");
+      // Directly mutating the theme object. This is generally not recommended
+      // as it might not trigger re-renders in consuming components as expected.
+      // However, the immediate issue is the blank screen caused by state toggling.
+      if (typeof window !== 'undefined') {
+        theme.windowWidth = window.innerWidth;
+        theme.windowHeight = window.innerHeight;
+      }
     };
 
-    window.addEventListener('resize', handleResize);
-    // Set initial size
-    handleResize();
+    if (typeof window !== 'undefined') {
+      console.log("App component - useEffect - adding resize listener");
+      handleResize(); // Set initial size
+      window.addEventListener('resize', handleResize);
+    }
 
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+    return () => {
+      console.log("App component - useEffect cleanup - removing resize listener");
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('resize', handleResize);
+      }
+    };
+  }, []); // Empty dependency array ensures this runs once on mount and cleans up on unmount
 
-  if (!windowReady) {
-    // You might want to render a loader here or nothing until the window object is available
+  console.log("App component - before isClient check, isClient:", isClient);
+  if (!isClient) {
+    console.log("App component - isClient is false, returning null");
+    // Render nothing on the server or before client-side hydration is complete
     return null; 
   }
 
+  console.log("App component - isClient is true, rendering ThemeProvider");
   return (
     <ThemeProvider theme={theme}>
       <GlobalStyles />
