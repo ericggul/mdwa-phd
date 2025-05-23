@@ -1,7 +1,7 @@
 import Head from 'next/head';
 import styled from 'styled-components';
-import ThreeDPresentation from '../components/ThreeDPresentation';
-import InteractivePresentation from '../components/InteractivePresentation';
+import ThreeDPresentation from '@/components/v2';
+import InteractivePresentation from '@/components/v1';
 
 const MainContainer = styled.div`
   width: 100vw;
