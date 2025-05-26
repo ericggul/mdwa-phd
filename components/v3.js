@@ -1,10 +1,9 @@
 import React, { useRef, useState, useEffect, Suspense } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls, Text, Plane } from '@react-three/drei';
 import * as THREE from 'three';
 import { useSpring, a } from '@react-spring/three';
 import { STRUCTURE } from '@/utils/constant';
-import { Interactive } from '@react-three/xr';
 
 // Define slide dimensions based on 2:9:16 ratio
 const SLIDE_DIM_16 = 16; // The 16-unit dimension (becomes width for content)
@@ -27,38 +26,38 @@ const Slide = ({ position, title, onClick, isSelected }) => {
   });
 
   return (
-    <Interactive 
-      onSelect={() => {
-        console.log("Slide clicked:", title, "Current isSelected:", isSelected);
+    <a.mesh
+      ref={meshRef}
+      position={position}
+      scale={scale}
+      onClick={(event) => {
+        event.stopPropagation();
+        console.log("Slide <a.mesh> clicked:", title);
         onClick();
       }}
-      onHover={() => setHover(true)} 
-      onBlur={() => setHover(false)}
+      onPointerOver={(event) => {
+        event.stopPropagation();
+        setHover(true);
+      }}
+      onPointerOut={(event) => {
+        event.stopPropagation();
+        setHover(false);
+      }}
     >
-      <a.mesh
-        ref={meshRef}
-        position={position}
-        scale={scale}
-        // No rotation needed here as geometry is defined for initial view
+      <boxGeometry args={slideBoxArgs} />
+      <meshStandardMaterial color={isSelected ? 'hotpink' : hovered ? 'lightsalmon' : 'royalblue'} />
+      <Text
+        position={[0, 0, SLIDE_DIM_9 / 2 + 0.1]}
+        fontSize={0.6}
+        color="white"
+        anchorX="center"
+        anchorY="middle"
+        maxWidth={SLIDE_DIM_16 * 0.9}
+        textAlign="center"
       >
-        <boxGeometry args={slideBoxArgs} />
-        <meshStandardMaterial color={isSelected ? 'hotpink' : hovered ? 'lightsalmon' : 'royalblue'} />
-        {/* Text on the initially visible 2x16 face (front face, which is along XY plane, centered on Z) */}
-        {/* The text needs to be on the SLIDE_DIM_16 x SLIDE_THICKNESS face */}
-        {/* Position it on the Z+ face of the box args [16, 2, 9] */}
-        <Text
-          position={[0, 0, SLIDE_DIM_9 / 2 + 0.1]} // Centered, slightly in front of the Z+ face
-          fontSize={0.6} // Adjusted font size
-          color="white"
-          anchorX="center"
-          anchorY="middle"
-          maxWidth={SLIDE_DIM_16 * 0.9} // Max width based on the 16-unit dimension
-          textAlign="center"
-        >
-          {title}
-        </Text>
-      </a.mesh>
-    </Interactive>
+        {title}
+      </Text>
+    </a.mesh>
   );
 };
 
@@ -71,7 +70,7 @@ const PresentationLayout = () => {
   const slideData = React.useMemo(() => {
     const positions = [];
     let currentYOffset = 0;
-    const yLayerSpacing = SLIDE_THICKNESS * 2.5;
+    const yLayerSpacing = SLIDE_THICKNESS * 3;
     const xNodeSpacing = SLIDE_DIM_16 * 1.2;
     let minY = Infinity, maxY = -Infinity;
 
