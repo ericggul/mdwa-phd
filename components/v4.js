@@ -7,26 +7,32 @@ import { STRUCTURE } from '@/utils/constant';
 
 const SLIDE_WIDTH_16 = 16; // X-dimension of the content face
 const SLIDE_DEPTH_9 = 9;   // Z-dimension of the content face (becomes "height" on screen when zoomed)
-const SLIDE_ACTUAL_THICKNESS = 0.5; // Y-dimension (actual thickness of the "file" mesh)
+const SLIDE_COMPONENT_SLOT_THICKNESS = 2; // Defines the total thickness each component slot occupies
+
+const AnimatedDreiText = a(Text); // Define animatable Drei Text component
 
 // BoxGeometry arguments: [width, height, depth] for the mesh
-// Mesh: X=SLIDE_WIDTH_16, Y=SLIDE_ACTUAL_THICKNESS, Z=SLIDE_DEPTH_9
-const slideBoxArgs = [SLIDE_WIDTH_16, SLIDE_ACTUAL_THICKNESS, SLIDE_DEPTH_9];
+// Mesh: X=SLIDE_WIDTH_16, Y=SLIDE_COMPONENT_SLOT_THICKNESS, Z=SLIDE_DEPTH_9
+const slideBoxArgs = [SLIDE_WIDTH_16, SLIDE_COMPONENT_SLOT_THICKNESS, SLIDE_DEPTH_9];
 
-const Slide = ({ id, position, title, onClick, isSelected }) => {
+const Slide = ({ id, position, title, onClick, isSelected, showFrontEdgeTitle, isDimmed, individualThickness }) => {
   const meshRef = useRef();
   const [hovered, setHover] = useState(false);
 
-  const { scale } = useSpring({
+  const springProps = useSpring({
     scale: hovered && !isSelected ? 1.05 : 1,
-    config: { tension: 400, friction: 30 },
+    meshOpacity: isDimmed ? 0 : 1, // Dimmed slides (mesh) become fully transparent
+    textOpacity: isDimmed ? 0 : 1, // Dimmed text also becomes fully transparent
+    config: { tension: 200, friction: 20 },
   });
+
+  const slideBoxArgs = [SLIDE_WIDTH_16, individualThickness, SLIDE_DEPTH_9];
 
   return (
     <a.mesh
       ref={meshRef}
       position={position}
-      scale={scale}
+      scale={springProps.scale}
       onClick={(event) => {
         event.stopPropagation();
         onClick();
@@ -43,20 +49,46 @@ const Slide = ({ id, position, title, onClick, isSelected }) => {
       receiveShadow // Slides can receive shadows
     >
       <boxGeometry args={slideBoxArgs} />
-      <meshStandardMaterial color={isSelected ? 'lightgreen' : hovered ? 'skyblue' : '#CCCCCC'} roughness={0.6} metalness={0.2} />
-      <Text
-        position={[0, SLIDE_ACTUAL_THICKNESS / 2 + 0.01, 0]} // On top face, slightly above
+      <a.meshStandardMaterial 
+        color={isSelected ? 'lightgreen' : hovered ? 'skyblue' : '#CCCCCC'} 
+        roughness={0.6} 
+        metalness={0.2} 
+        transparent // Required for opacity changes
+        opacity={springProps.meshOpacity} // Apply animated opacity
+      />
+      
+      {/* Text on the top face (XZ plane), primarily for zoomed-in view */}
+      <AnimatedDreiText
+        position={[0, individualThickness / 2 + 0.01, 0]} // On top face, slightly above
         rotation={[-Math.PI / 2, 0, 0]} // Rotate to lay flat on XZ plane
-        fontSize={0.7} // Adjusted font size
+        fontSize={0.7}
         color="black"
         anchorX="center"
         anchorY="middle"
         maxWidth={SLIDE_WIDTH_16 * 0.85}
         textAlign="center"
         lineHeight={1.2}
+        fillOpacity={springProps.textOpacity} // Animate text opacity
       >
         {title}
-      </Text>
+      </AnimatedDreiText>
+
+      {/* Text on the front edge (XY plane at positive Z), for overview visibility */}
+      {showFrontEdgeTitle && (
+        <AnimatedDreiText
+          position={[0, 0, SLIDE_DEPTH_9 / 2 + 0.05]} // Slightly in front of the Z-face
+          fontSize={0.65} // Increased font size
+          color={isSelected? "black" : "white"} // White for overview, black if selected and material is lightgreen
+          anchorX="center"
+          anchorY="middle"
+          maxWidth={SLIDE_WIDTH_16 * 0.9}
+          textAlign="center"
+          lineHeight={1}
+          fillOpacity={springProps.textOpacity} // Animate text opacity
+        >
+          {title}
+        </AnimatedDreiText>
+      )}
     </a.mesh>
   );
 };
@@ -66,11 +98,11 @@ const PresentationLayoutV4 = () => {
   const { camera, size } = useThree();
   const controlsRef = useRef();
 
-  const slideData = React.useMemo(() => {
+  const { slides, overviewTitles, totalActualHeight, totalActualWidth } = React.useMemo(() => {
     const generatedSlides = [];
-    const yLayerSpacing = SLIDE_ACTUAL_THICKNESS * 6; // More compact Y spacing based on new thickness
-    const xNodeSpacing = SLIDE_WIDTH_16 * 1.2; // X spacing within a layer
-    const stackedSlideVerticalOffset = SLIDE_ACTUAL_THICKNESS * 1.1; // Offset for stacked slides
+    const generatedOverviewTitles = [];
+    const yLayerSpacing = SLIDE_COMPONENT_SLOT_THICKNESS * 3; 
+    const xNodeSpacing = SLIDE_WIDTH_16 * 1.2; 
 
     let minYOverall = Infinity, maxYOverall = -Infinity;
     let minXOverall = Infinity, maxXOverall = -Infinity;
@@ -79,124 +111,148 @@ const PresentationLayoutV4 = () => {
       const numComponents = layer.components.length;
       const layerWidth = (numComponents - 1) * xNodeSpacing;
       const startX = -layerWidth / 2;
-      // Base Y for this layer, layers go "down" (negative Y) before centering
+      // currentLayerBaseY is the Y of the BOTTOM of the current component slot
       const currentLayerBaseY = -(layerIndex * yLayerSpacing);
+
+      minYOverall = Math.min(minYOverall, currentLayerBaseY);
+      maxYOverall = Math.max(maxYOverall, currentLayerBaseY + SLIDE_COMPONENT_SLOT_THICKNESS);
 
       layer.components.forEach((component, componentIndex) => {
         const componentBaseX = startX + componentIndex * xNodeSpacing;
-        const componentBaseZ = 0; // All slides primarily on Z=0 plane before centering
+        const componentBaseZ = 0; 
 
         const isFrameworkComponent = layer.section === 'Framework Design' &&
                                      (component.title === 'Interactive Taxonomy' ||
                                       component.title === 'State-based Architecture' ||
                                       component.title === 'Dimensional Transformation');
         const numSlidesForThisComponent = isFrameworkComponent ? 2 : 1;
+        const actualIndividualSlideThickness = SLIDE_COMPONENT_SLOT_THICKNESS / numSlidesForThisComponent;
 
-        for (let i = 0; i < numSlidesForThisComponent; i++) {
-          const slideId = `${layerIndex}-${componentIndex}-${i}`;
-          const slideTitle = numSlidesForThisComponent > 1 ? `${component.title} (Part ${i + 1})` : component.title;
-          
-          // If stacked, the first slide is at currentLayerBaseY, second is below it.
-          // We want slides to stack "upwards" visually in the initial layout if multiple.
-          // Let's make currentLayerBaseY the Y of the *bottom-most* slide in a stack.
-          // So, yPos will be currentLayerBaseY + i * stackedSlideVerticalOffset
-          const yPos = currentLayerBaseY + i * stackedSlideVerticalOffset;
+        if (numSlidesForThisComponent > 1) {
+          for (let i = 0; i < numSlidesForThisComponent; i++) {
+            const slideId = `${layerIndex}-${componentIndex}-${i}`;
+            const individualSlideTitle = `${component.title} (Part ${i + 1})`;
+            // Calculate Y center of this individual sub-slide within the slot
+            const yPos = currentLayerBaseY + (i * actualIndividualSlideThickness) + (actualIndividualSlideThickness / 2);
+            const position = new THREE.Vector3(componentBaseX, yPos, componentBaseZ);
+            generatedSlides.push({
+              id: slideId,
+              title: individualSlideTitle,
+              position: position,
+              showFrontEdgeTitle: false, 
+              individualThickness: actualIndividualSlideThickness,
+            });
+          }
+          // Overview title for the entire stack, centered in the component slot
+          const stackCenterY = currentLayerBaseY + SLIDE_COMPONENT_SLOT_THICKNESS / 2;
+          generatedOverviewTitles.push({
+            id: `title-${layerIndex}-${componentIndex}`,
+            text: component.title,
+            position: new THREE.Vector3(componentBaseX, stackCenterY, componentBaseZ + SLIDE_DEPTH_9 / 2 + 0.05),
+          });
 
+        } else {
+          const slideId = `${layerIndex}-${componentIndex}-0`;
+          // Center of the single slide within the slot
+          const yPos = currentLayerBaseY + SLIDE_COMPONENT_SLOT_THICKNESS / 2;
           const position = new THREE.Vector3(componentBaseX, yPos, componentBaseZ);
           generatedSlides.push({
             id: slideId,
-            title: slideTitle,
+            title: component.title, 
             position: position,
+            showFrontEdgeTitle: true,
+            individualThickness: actualIndividualSlideThickness, // which is SLIDE_COMPONENT_SLOT_THICKNESS
           });
-          
-          // For overall bounds calculation (pre-centering)
-          minYOverall = Math.min(minYOverall, yPos - SLIDE_ACTUAL_THICKNESS / 2);
-          maxYOverall = Math.max(maxYOverall, yPos + SLIDE_ACTUAL_THICKNESS / 2);
-          minXOverall = Math.min(minXOverall, componentBaseX - SLIDE_WIDTH_16 / 2);
-          maxXOverall = Math.max(maxXOverall, componentBaseX + SLIDE_WIDTH_16 / 2);
         }
+        minXOverall = Math.min(minXOverall, componentBaseX - SLIDE_WIDTH_16 / 2);
+        maxXOverall = Math.max(maxXOverall, componentBaseX + SLIDE_WIDTH_16 / 2);
       });
     });
     
-    // Calculate the true vertical center of the generated Y positions
     const structureCenterY = (minYOverall + maxYOverall) / 2;
-
-    // Shift all positions so their collective vertical center is at Y=0
-    // And ensure horizontal center is also at X=0 (already handled by startX if STRUCTURE is symmetric)
-    const structureCenterX = (minXOverall + maxXOverall) / 2; // Should be near 0
+    const structureCenterX = (minXOverall + maxXOverall) / 2; 
 
     generatedSlides.forEach(s => {
       s.position.y -= structureCenterY;
-      s.position.x -= structureCenterX; // Center horizontally too
+      s.position.x -= structureCenterX; 
+    });
+    generatedOverviewTitles.forEach(t => {
+        t.position.y -= structureCenterY;
+        t.position.x -= structureCenterX;
     });
 
-    // Recalculate actual height/width after centering for camera logic (as in v3)
     let finalMinY = Infinity, finalMaxY = -Infinity;
     let finalMinX = Infinity, finalMaxX = -Infinity;
-    generatedSlides.forEach(p => {
-        finalMinY = Math.min(finalMinY, p.position.y - SLIDE_ACTUAL_THICKNESS / 2);
-        finalMaxY = Math.max(finalMaxY, p.position.y + SLIDE_ACTUAL_THICKNESS / 2);
-        finalMinX = Math.min(finalMinX, p.position.x - SLIDE_WIDTH_16 / 2);
-        finalMaxX = Math.max(finalMaxX, p.position.x + SLIDE_WIDTH_16 / 2);
+    // Calculate bounds based on component slots for camera fitting
+    STRUCTURE.forEach((layer, layerIndex) => {
+        const numComponents = layer.components.length;
+        const layerWidth = (numComponents - 1) * xNodeSpacing;
+        const startX = -layerWidth / 2 - structureCenterX; // Apply centering
+        const layerBaseY = -(layerIndex * yLayerSpacing) - structureCenterY; // Apply centering
+
+        finalMinY = Math.min(finalMinY, layerBaseY);
+        finalMaxY = Math.max(finalMaxY, layerBaseY + SLIDE_COMPONENT_SLOT_THICKNESS);
+
+        for(let compIdx = 0; compIdx < numComponents; compIdx++){
+            const compX = startX + compIdx * xNodeSpacing;
+            finalMinX = Math.min(finalMinX, compX - SLIDE_WIDTH_16/2);
+            finalMaxX = Math.max(finalMaxX, compX + SLIDE_WIDTH_16/2);
+        }
     });
 
-    const totalActualHeight = finalMaxY - finalMinY;
-    const totalActualWidth = finalMaxX - finalMinX;
-    // All slides are on Z=0 plane (relative to each other before global centering, which doesn't affect Z here)
-    // so totalActualDepth is just SLIDE_DEPTH_9.
+    const calcTotalActualHeight = finalMaxY - finalMinY;
+    const calcTotalActualWidth = finalMaxX - finalMinX;
     
-    return { slides: generatedSlides, totalActualHeight, totalActualWidth };
+    return { slides: generatedSlides, overviewTitles: generatedOverviewTitles, totalActualHeight: calcTotalActualHeight, totalActualWidth: calcTotalActualWidth };
   }, []);
 
 
-  const initialLookAt = React.useMemo(() => new THREE.Vector3(0, 0, 0), []); // Centered structure
+  const initialLookAt = React.useMemo(() => new THREE.Vector3(0, 0, 0), []);
 
   const initialCameraPosition = React.useMemo(() => {
     const fovInRadians = camera.fov * (Math.PI / 180);
     const aspect = size.width / size.height;
     
-    const heightToFit = slideData.totalActualHeight + SLIDE_DEPTH_9; // Consider slide depth for perspective
-    const widthToFit = slideData.totalActualWidth;
+    const heightToFit = totalActualHeight + SLIDE_DEPTH_9; 
+    const widthToFit = totalActualWidth;
 
-    let zDistanceHeight = SLIDE_DEPTH_9 * 2; // Min distance
+    let zDistanceHeight = SLIDE_DEPTH_9 * 2; 
     if (heightToFit > 0) {
         zDistanceHeight = (heightToFit / 2) / Math.tan(fovInRadians / 2);
     }
 
-    let zDistanceWidth = SLIDE_WIDTH_16 * 2; // Min distance
+    let zDistanceWidth = SLIDE_WIDTH_16 * 2; 
     if (widthToFit > 0 && aspect > 0) {
         zDistanceWidth = (widthToFit / (2 * aspect)) / Math.tan(fovInRadians / 2);
     }
     
-    const zDistance = Math.max(zDistanceHeight, zDistanceWidth, SLIDE_DEPTH_9 * 2) * 1.3; // 30% margin, ensure min distance
+    const zDistance = Math.max(zDistanceHeight, zDistanceWidth, SLIDE_DEPTH_9 * 2, SLIDE_COMPONENT_SLOT_THICKNESS * 5) * 1.3; 
 
-    return new THREE.Vector3(0, 0, zDistance); // Y is 0 because layout is centered at Y=0
-  }, [slideData, camera.fov, size.width, size.height]);
+    return new THREE.Vector3(0, 0, zDistance); 
+  }, [totalActualHeight, totalActualWidth, camera.fov, size.width, size.height]);
   
-  const defaultCameraUp = React.useMemo(() => new THREE.Vector3(0, 1, 0), []); // Standard Y up for overview
-  const zoomedInCameraUp = React.useMemo(() => new THREE.Vector3(0, 0, -1), []); // For looking down, world Z is screen Y
+  const defaultCameraUp = React.useMemo(() => new THREE.Vector3(0, 1, 0), []);
+  const zoomedInCameraUp = React.useMemo(() => new THREE.Vector3(0, 0, -1), []);
 
   useFrame(() => {
-    const targetSlide = selectedSlideId ? slideData.slides.find(s => s.id === selectedSlideId) : null;
+    const targetSlide = selectedSlideId ? slides.find(s => s.id === selectedSlideId) : null;
 
-    if (targetSlide) { // Zoom IN
+    if (targetSlide) { 
       const slideMeshPosition = targetSlide.position;
       const fovInRadians = camera.fov * (Math.PI / 180);
       const aspect = size.width / size.height;
 
-      // Calculate distance to fit the 16x9 (world X by world Z) content face
-      // When camera.up is (0,0,-1), screen Y maps to world -Z, screen X maps to world X
-      const distanceForDepthFit = (SLIDE_DEPTH_9 / 2) / Math.tan(fovInRadians / 2); // Fit world Z (screen Y)
-      const distanceForWidthFit = (SLIDE_WIDTH_16 / (2 * aspect)) / Math.tan(fovInRadians / 2); // Fit world X (screen X)
-      const zoomDistance = Math.max(distanceForDepthFit, distanceForWidthFit) * 1.15; // 15% margin
+      const distanceForDepthFit = (SLIDE_DEPTH_9 / 2) / Math.tan(fovInRadians / 2); 
+      const distanceForWidthFit = (SLIDE_WIDTH_16 / (2 * aspect)) / Math.tan(fovInRadians / 2); 
+      const zoomDistance = Math.max(distanceForDepthFit, distanceForWidthFit) * 1.15; 
 
       const cameraTargetPosition = new THREE.Vector3(
         slideMeshPosition.x,
-        slideMeshPosition.y + zoomDistance, // Position camera "above" the slide (along +Y)
+        slideMeshPosition.y + zoomDistance, 
         slideMeshPosition.z
       );
       
-      const lookAtPosition = slideMeshPosition.clone(); // Look at the center of the slide
+      const lookAtPosition = slideMeshPosition.clone(); 
 
       camera.position.lerp(cameraTargetPosition, 0.08);
       camera.up.copy(zoomedInCameraUp); 
@@ -207,7 +263,7 @@ const PresentationLayoutV4 = () => {
       }
       camera.lookAt(lookAtPosition);
 
-    } else { // Zoom OUT
+    } else { 
       camera.position.lerp(initialCameraPosition, 0.08);
       camera.up.copy(defaultCameraUp);
       if (controlsRef.current) {
@@ -219,7 +275,6 @@ const PresentationLayoutV4 = () => {
     if (controlsRef.current) controlsRef.current.update();
   });
 
-  // Initial camera setup
   useEffect(() => {
     camera.position.copy(initialCameraPosition);
     camera.lookAt(initialLookAt);
@@ -228,12 +283,18 @@ const PresentationLayoutV4 = () => {
       controlsRef.current.target.copy(initialLookAt);
       controlsRef.current.update();
     }
-  }, [camera, initialCameraPosition, initialLookAt, defaultCameraUp, slideData]); // Added slideData as dep
+  }, [camera, initialCameraPosition, initialLookAt, defaultCameraUp, slides]);
 
   const handleSlideClick = (slideId) => {
     setSelectedSlideId(prev => (prev === slideId ? null : slideId));
   };
   
+  // For the overview titles, they should also dim if any slide is selected.
+  const overviewTitlesSpring = useSpring({
+    opacity: selectedSlideId !== null ? 0 : 1,
+    config: { tension: 200, friction: 20 }
+  });
+
   return (
     <>
       <OrbitControls ref={controlsRef} />
@@ -245,16 +306,16 @@ const PresentationLayoutV4 = () => {
         shadow-mapSize-width={2048}
         shadow-mapSize-height={2048}
         shadow-camera-far={150}
-        shadow-camera-left={-slideData.totalActualWidth / 2 || -50}
-        shadow-camera-right={slideData.totalActualWidth / 2 || 50}
-        shadow-camera-top={slideData.totalActualHeight / 2 || 50}
-        shadow-camera-bottom={-slideData.totalActualHeight / 2 || -50}
+        shadow-camera-left={-(totalActualWidth / 2 + SLIDE_DEPTH_9) || -50}
+        shadow-camera-right={(totalActualWidth / 2 + SLIDE_DEPTH_9) || 50}
+        shadow-camera-top={(totalActualHeight / 2 + SLIDE_DEPTH_9) || 50}
+        shadow-camera-bottom={-(totalActualHeight / 2 + SLIDE_DEPTH_9) || -50}
       />
       <directionalLight position={[-20, -10, -30]} intensity={0.4} />
       <Suspense fallback={
           <Text position={[0,0,0]} fontSize={1.5} color="white" anchorX="center" anchorY="middle">Loading PhD Proposal...</Text>
       }>
-        {slideData.slides.map(slide => (
+        {slides.map(slide => (
           <Slide
             key={slide.id}
             id={slide.id}
@@ -262,16 +323,35 @@ const PresentationLayoutV4 = () => {
             title={slide.title}
             onClick={() => handleSlideClick(slide.id)}
             isSelected={selectedSlideId === slide.id}
+            showFrontEdgeTitle={slide.showFrontEdgeTitle}
+            isDimmed={selectedSlideId !== null && selectedSlideId !== slide.id}
+            individualThickness={slide.individualThickness}
           />
+        ))}
+        {overviewTitles.map(titleInfo => (
+            <AnimatedDreiText // Use AnimatedDreiText for overview titles as well
+                key={titleInfo.id}
+                position={titleInfo.position}
+                fontSize={0.65} 
+                color={"white"} 
+                anchorX="center"
+                anchorY="middle"
+                maxWidth={SLIDE_WIDTH_16 * 0.9}
+                textAlign="center"
+                lineHeight={1}
+                fillOpacity={overviewTitlesSpring.opacity} // Animate opacity of overview titles
+            >
+                {titleInfo.text}
+            </AnimatedDreiText>
         ))}
       </Suspense>
       {selectedSlideId && (
         <Plane
-            args={[size.width * 20, size.height * 20]} // Very large backdrop
-            position={camera.position.clone().add(new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion).multiplyScalar(SLIDE_DEPTH_9 * 5))} 
+            args={[size.width * 20, size.height * 20]} 
+            position={camera.position.clone().add(new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion).multiplyScalar(SLIDE_DEPTH_9 * 6))} // Pushed further back
             onClick={() => setSelectedSlideId(null)} 
             material-transparent
-            material-opacity={0.05} 
+            material-opacity={0.02} // More transparent backdrop
             material-color="black"
         />
       )}
@@ -280,18 +360,13 @@ const PresentationLayoutV4 = () => {
 };
 
 const InteractivePresentationV4 = () => {
-  // Access slideData constants for shadow camera setup if possible, or use estimated fallbacks
-  // This is tricky because slideData is internal to PresentationLayoutV4
-  // For now, using fixed large shadow frustum or let PresentationLayoutV4 handle it.
-  // The shadow props on directionalLight inside PresentationLayoutV4 are better.
-
   return (
     <Canvas 
       shadows
-      camera={{ fov: 50 }} // Initial pos/lookAt set by PresentationLayoutV4
+      camera={{ fov: 50 }} 
       style={{ width: '100%', height: '100%' }}
       onCreated={({ gl }) => {
-        gl.setClearColor(new THREE.Color('#282c34')); // Darker, slightly bluish background
+        gl.setClearColor(new THREE.Color('#282c34')); 
         gl.shadowMap.enabled = true;
         gl.shadowMap.type = THREE.PCFSoftShadowMap;
       }}
