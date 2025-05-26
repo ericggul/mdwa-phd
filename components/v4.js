@@ -1,9 +1,10 @@
 import React, { useRef, useState, useEffect, Suspense } from 'react';
 import { Canvas, useThree, useFrame } from '@react-three/fiber';
-import { OrbitControls, Text, Plane, Box } from '@react-three/drei';
+import { OrbitControls, Text, Plane } from '@react-three/drei';
 import * as THREE from 'three';
 import { useSpring, a } from '@react-spring/three';
 import { STRUCTURE } from '@/utils/constant';
+import NavigationUI from './NavigationUI'; // Import NavigationUI
 
 const SLIDE_WIDTH_16 = 16; // X-dimension of the content face
 const SLIDE_DEPTH_9 = 9;   // Z-dimension of the content face (becomes "height" on screen when zoomed)
@@ -45,8 +46,6 @@ const Slide = ({ id, position, title, onClick, isSelected, showFrontEdgeTitle, i
         event.stopPropagation();
         setHover(false);
       }}
-      castShadow // Slides can cast shadows
-      receiveShadow // Slides can receive shadows
     >
       <boxGeometry args={slideBoxArgs} />
       <a.meshStandardMaterial 
@@ -93,14 +92,16 @@ const Slide = ({ id, position, title, onClick, isSelected, showFrontEdgeTitle, i
   );
 };
 
-const PresentationLayoutV4 = () => {
+const PresentationLayoutV4 = ({ setNavigationFunctions }) => {
   const [selectedSlideId, setSelectedSlideId] = useState(null);
+  const [currentNavigatedIndex, setCurrentNavigatedIndex] = useState(-1); // -1 for overview
   const { camera, size } = useThree();
   const controlsRef = useRef();
 
-  const { slides, overviewTitles, totalActualHeight, totalActualWidth } = React.useMemo(() => {
+  const { slides, overviewTitles, totalActualHeight, totalActualWidth, orderedSlideIds } = React.useMemo(() => {
     const generatedSlides = [];
     const generatedOverviewTitles = [];
+    const generatedOrderedSlideIds = [];
     const yLayerSpacing = SLIDE_COMPONENT_SLOT_THICKNESS * 3; 
     const xNodeSpacing = SLIDE_WIDTH_16 * 1.2; 
 
@@ -131,6 +132,7 @@ const PresentationLayoutV4 = () => {
         if (numSlidesForThisComponent > 1) {
           for (let i = 0; i < numSlidesForThisComponent; i++) {
             const slideId = `${layerIndex}-${componentIndex}-${i}`;
+            generatedOrderedSlideIds.push(slideId);
             const individualSlideTitle = `${component.title} (Part ${i + 1})`;
             // Calculate Y center of this individual sub-slide within the slot
             const yPos = currentLayerBaseY + (i * actualIndividualSlideThickness) + (actualIndividualSlideThickness / 2);
@@ -153,6 +155,7 @@ const PresentationLayoutV4 = () => {
 
         } else {
           const slideId = `${layerIndex}-${componentIndex}-0`;
+          generatedOrderedSlideIds.push(slideId);
           // Center of the single slide within the slot
           const yPos = currentLayerBaseY + SLIDE_COMPONENT_SLOT_THICKNESS / 2;
           const position = new THREE.Vector3(componentBaseX, yPos, componentBaseZ);
@@ -203,9 +206,68 @@ const PresentationLayoutV4 = () => {
     const calcTotalActualHeight = finalMaxY - finalMinY;
     const calcTotalActualWidth = finalMaxX - finalMinX;
     
-    return { slides: generatedSlides, overviewTitles: generatedOverviewTitles, totalActualHeight: calcTotalActualHeight, totalActualWidth: calcTotalActualWidth };
+    return { slides: generatedSlides, overviewTitles: generatedOverviewTitles, totalActualHeight: calcTotalActualHeight, totalActualWidth: calcTotalActualWidth, orderedSlideIds: generatedOrderedSlideIds };
   }, []);
 
+  useEffect(() => {
+    if (currentNavigatedIndex >= 0 && currentNavigatedIndex < orderedSlideIds.length) {
+      setSelectedSlideId(orderedSlideIds[currentNavigatedIndex]);
+    } else {
+      setSelectedSlideId(null); // Go to overview
+    }
+  }, [currentNavigatedIndex, orderedSlideIds]);
+
+  const goToSlideByIndex = (index) => {
+    setCurrentNavigatedIndex(index);
+  };
+
+  const goToNextSlide = React.useCallback(() => {
+    setCurrentNavigatedIndex(prev => {
+      if (prev === -1) return 0; // From overview, go to first slide
+      const nextIndex = prev + 1;
+      return nextIndex >= orderedSlideIds.length ? -1 : nextIndex; // If at end, go to overview, else next
+    });
+  }, [orderedSlideIds.length]);
+
+  const goToPrevSlide = React.useCallback(() => {
+    setCurrentNavigatedIndex(prev => {
+      if (prev === -1) return orderedSlideIds.length - 1; // From overview, go to last slide
+      const prevIndex = prev - 1;
+      return prevIndex < 0 ? -1 : prevIndex; // If at beginning, go to overview, else prev
+    });
+  }, [orderedSlideIds.length]);
+  
+  const goToOverview = React.useCallback(() => {
+      setCurrentNavigatedIndex(-1);
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === 'ArrowRight') {
+        goToNextSlide();
+      } else if (event.key === 'ArrowLeft') {
+        goToPrevSlide();
+      } else if (event.key === 'Escape') {
+        goToOverview();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [goToNextSlide, goToPrevSlide, goToOverview]);
+
+  useEffect(() => {
+    if (setNavigationFunctions) {
+      setNavigationFunctions({
+        onPrev: goToPrevSlide,
+        onNext: goToNextSlide,
+        onOverview: goToOverview,
+        currentIndex: currentNavigatedIndex,
+        totalSlides: orderedSlideIds.length
+      });
+    }
+  }, [setNavigationFunctions, goToPrevSlide, goToNextSlide, goToOverview, currentNavigatedIndex, orderedSlideIds.length]);
 
   const initialLookAt = React.useMemo(() => new THREE.Vector3(0, 0, 0), []);
 
@@ -276,17 +338,25 @@ const PresentationLayoutV4 = () => {
   });
 
   useEffect(() => {
-    camera.position.copy(initialCameraPosition);
-    camera.lookAt(initialLookAt);
-    camera.up.copy(defaultCameraUp);
-    if (controlsRef.current) {
-      controlsRef.current.target.copy(initialLookAt);
-      controlsRef.current.update();
+    if (!selectedSlideId) { // Only reset to initial if going to overview
+        camera.position.copy(initialCameraPosition);
+        camera.lookAt(initialLookAt);
+        camera.up.copy(defaultCameraUp);
+        if (controlsRef.current) {
+          controlsRef.current.target.copy(initialLookAt);
+          controlsRef.current.update();
+        }
     }
-  }, [camera, initialCameraPosition, initialLookAt, defaultCameraUp, slides]);
+  }, [selectedSlideId, camera, initialCameraPosition, initialLookAt, defaultCameraUp]);
 
   const handleSlideClick = (slideId) => {
-    setSelectedSlideId(prev => (prev === slideId ? null : slideId));
+    const index = orderedSlideIds.findIndex(id => id === slideId);
+    if (index !== -1) {
+      goToSlideByIndex(index);
+    } else {
+      // Fallback or error if slideId not in ordered list, though should not happen
+      goToOverview(); 
+    }
   };
   
   // For the overview titles, they should also dim if any slide is selected.
@@ -299,18 +369,7 @@ const PresentationLayoutV4 = () => {
     <>
       <OrbitControls ref={controlsRef} />
       <ambientLight intensity={0.7} />
-      <directionalLight 
-        position={[30, 40, 50]} 
-        intensity={1.2} 
-        castShadow
-        shadow-mapSize-width={2048}
-        shadow-mapSize-height={2048}
-        shadow-camera-far={150}
-        shadow-camera-left={-(totalActualWidth / 2 + SLIDE_DEPTH_9) || -50}
-        shadow-camera-right={(totalActualWidth / 2 + SLIDE_DEPTH_9) || 50}
-        shadow-camera-top={(totalActualHeight / 2 + SLIDE_DEPTH_9) || 50}
-        shadow-camera-bottom={-(totalActualHeight / 2 + SLIDE_DEPTH_9) || -50}
-      />
+      <directionalLight position={[30, 40, 50]} intensity={1.2} />
       <directionalLight position={[-20, -10, -30]} intensity={0.4} />
       <Suspense fallback={
           <Text position={[0,0,0]} fontSize={1.5} color="white" anchorX="center" anchorY="middle">Loading PhD Proposal...</Text>
@@ -349,7 +408,7 @@ const PresentationLayoutV4 = () => {
         <Plane
             args={[size.width * 20, size.height * 20]} 
             position={camera.position.clone().add(new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion).multiplyScalar(SLIDE_DEPTH_9 * 6))} // Pushed further back
-            onClick={() => setSelectedSlideId(null)} 
+            onClick={goToOverview} // Use goToOverview for consistency
             material-transparent
             material-opacity={0.02} // More transparent backdrop
             material-color="black"
@@ -360,19 +419,27 @@ const PresentationLayoutV4 = () => {
 };
 
 const InteractivePresentationV4 = () => {
+  const [navFunctions, setNavFunctions] = useState({
+    onPrev: () => {},
+    onNext: () => {},
+    onOverview: () => {},
+    currentIndex: -1,
+    totalSlides: 0
+  });
+
   return (
-    <Canvas 
-      shadows
-      camera={{ fov: 50 }} 
-      style={{ width: '100%', height: '100%' }}
-      onCreated={({ gl }) => {
-        gl.setClearColor(new THREE.Color('#282c34')); 
-        gl.shadowMap.enabled = true;
-        gl.shadowMap.type = THREE.PCFSoftShadowMap;
-      }}
-    >
-      <PresentationLayoutV4 />
-    </Canvas>
+    <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+      <Canvas 
+        camera={{ fov: 50 }} 
+        style={{ width: '100%', height: '100%' }}
+        onCreated={({ gl }) => {
+          gl.setClearColor(new THREE.Color('#282c34')); 
+        }}
+      >
+        <PresentationLayoutV4 setNavigationFunctions={setNavFunctions} />
+      </Canvas>
+      <NavigationUI {...navFunctions} />
+    </div>
   );
 };
 
