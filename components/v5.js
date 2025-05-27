@@ -4,17 +4,18 @@ import { OrbitControls, Text, Plane } from '@react-three/drei';
 import * as THREE from 'three';
 import { useSpring, a } from '@react-spring/three';
 import { STRUCTURE } from '@/utils/constant';
-import NavigationUI from './NavigationUI'; // Import NavigationUI
+import NavigationUI from './NavigationUI';
 
-const SLIDE_WIDTH_16 = 16; // X-dimension of the content face
-const SLIDE_DEPTH_9 = 9;   // Z-dimension of the content face (becomes "height" on screen when zoomed)
-const SLIDE_COMPONENT_SLOT_THICKNESS = 2; // Defines the total thickness each component slot occupies
+// Layout constants - using v4's approach but for front-facing slides
+const SLIDE_WIDTH_16 = 16; 
+const SLIDE_DEPTH_9 = 9;   
+const SLIDE_THICKNESS = 0.8; // Thickness of individual slides
+const SLIDE_COMPONENT_SLOT_THICKNESS = 2; // Total thickness each component slot occupies
 
-const AnimatedDreiText = a(Text); // Define animatable Drei Text component
+const AnimatedDreiText = a(Text);
 
-// BoxGeometry arguments: [width, height, depth] for the mesh
-// Mesh: X=SLIDE_WIDTH_16, Y=SLIDE_COMPONENT_SLOT_THICKNESS, Z=SLIDE_DEPTH_9
-const slideBoxArgs = [SLIDE_WIDTH_16, SLIDE_COMPONENT_SLOT_THICKNESS, SLIDE_DEPTH_9];
+// BoxGeometry: [width, height, depth] where slides face forward (positive Z)
+const slideBoxArgs = [SLIDE_WIDTH_16, SLIDE_DEPTH_9, SLIDE_THICKNESS];
 
 const Slide = ({ id, position, title, onClick, isSelected, showFrontEdgeTitle, isDimmed, individualThickness }) => {
   const meshRef = useRef();
@@ -22,12 +23,12 @@ const Slide = ({ id, position, title, onClick, isSelected, showFrontEdgeTitle, i
 
   const springProps = useSpring({
     scale: hovered && !isSelected ? 1.05 : 1,
-    meshOpacity: isDimmed ? 0 : 1, // Dimmed slides (mesh) become fully transparent
-    textOpacity: isDimmed ? 0 : 1, // Dimmed text also becomes fully transparent
+    meshOpacity: isDimmed ? 0 : 1,
+    textOpacity: isDimmed ? 0 : 1,
     config: { tension: 200, friction: 20 },
   });
 
-  const slideBoxArgs = [SLIDE_WIDTH_16, individualThickness, SLIDE_DEPTH_9];
+  const adjustedBoxArgs = [SLIDE_WIDTH_16, SLIDE_DEPTH_9, individualThickness];
 
   return (
     <a.mesh
@@ -47,19 +48,18 @@ const Slide = ({ id, position, title, onClick, isSelected, showFrontEdgeTitle, i
         setHover(false);
       }}
     >
-      <boxGeometry args={slideBoxArgs} />
+      <boxGeometry args={adjustedBoxArgs} />
       <a.meshStandardMaterial 
         color={isSelected ? 'lightgreen' : hovered ? 'skyblue' : '#CCCCCC'} 
         roughness={0.6} 
         metalness={0.2} 
-        transparent // Required for opacity changes
-        opacity={springProps.meshOpacity} // Apply animated opacity
+        transparent
+        opacity={springProps.meshOpacity}
       />
       
-      {/* Text on the top face (XZ plane), primarily for zoomed-in view */}
+      {/* Text on the front face (positive Z face) */}
       <AnimatedDreiText
-        position={[0, individualThickness / 2 + 0.01, 0]} // On top face, slightly above
-        rotation={[-Math.PI / 2, 0, 0]} // Rotate to lay flat on XZ plane
+        position={[0, 0, individualThickness / 2 + 0.02]}
         fontSize={0.7}
         color="black"
         anchorX="center"
@@ -67,23 +67,24 @@ const Slide = ({ id, position, title, onClick, isSelected, showFrontEdgeTitle, i
         maxWidth={SLIDE_WIDTH_16 * 0.85}
         textAlign="center"
         lineHeight={1.2}
-        fillOpacity={springProps.textOpacity} // Animate text opacity
+        fillOpacity={springProps.textOpacity}
       >
         {title}
       </AnimatedDreiText>
 
-      {/* Text on the front edge (XY plane at positive Z), for overview visibility */}
+      {/* Optional title on the edge for overview visibility */}
       {showFrontEdgeTitle && (
         <AnimatedDreiText
-          position={[0, 0, SLIDE_DEPTH_9 / 2 + 0.05]} // Slightly in front of the Z-face
-          fontSize={0.65} // Increased font size
-          color={isSelected? "black" : "white"} // White for overview, black if selected and material is lightgreen
+          position={[0, SLIDE_DEPTH_9 / 2 + 0.05, 0]}
+          rotation={[Math.PI / 2, 0, 0]}
+          fontSize={0.65}
+          color={isSelected ? "black" : "white"}
           anchorX="center"
           anchorY="middle"
           maxWidth={SLIDE_WIDTH_16 * 0.9}
           textAlign="center"
           lineHeight={1}
-          fillOpacity={springProps.textOpacity} // Animate text opacity
+          fillOpacity={springProps.textOpacity}
         >
           {title}
         </AnimatedDreiText>
@@ -92,12 +93,12 @@ const Slide = ({ id, position, title, onClick, isSelected, showFrontEdgeTitle, i
   );
 };
 
-const PresentationLayoutV4 = ({ setNavigationFunctions }) => {
+const PresentationLayoutV5 = ({ setNavigationFunctions }) => {
   const [selectedSlideId, setSelectedSlideId] = useState(null);
-  const [currentNavigatedIndex, setCurrentNavigatedIndex] = useState(-1); // -1 for overview
+  const [currentNavigatedIndex, setCurrentNavigatedIndex] = useState(-1);
   const { camera, size } = useThree();
   const controlsRef = useRef();
-  const previousTargetIdRef = useRef(null); // To track changes in targetSlide
+  const previousTargetIdRef = useRef(null);
 
   const { slides, overviewTitles, totalActualHeight, totalActualWidth, orderedSlideIds } = React.useMemo(() => {
     const generatedSlides = [];
@@ -113,7 +114,6 @@ const PresentationLayoutV4 = ({ setNavigationFunctions }) => {
       const numComponents = layer.components.length;
       const layerWidth = (numComponents - 1) * xNodeSpacing;
       const startX = -layerWidth / 2;
-      // currentLayerBaseY is the Y of the BOTTOM of the current component slot
       const currentLayerBaseY = -(layerIndex * yLayerSpacing);
 
       minYOverall = Math.min(minYOverall, currentLayerBaseY);
@@ -135,9 +135,10 @@ const PresentationLayoutV4 = ({ setNavigationFunctions }) => {
             const slideId = `${layerIndex}-${componentIndex}-${i}`;
             generatedOrderedSlideIds.push(slideId);
             const individualSlideTitle = `${component.title} (Part ${i + 1})`;
-            // Calculate Y center of this individual sub-slide within the slot
             const yPos = currentLayerBaseY + (i * actualIndividualSlideThickness) + (actualIndividualSlideThickness / 2);
-            const position = new THREE.Vector3(componentBaseX, yPos, componentBaseZ);
+            // Z position: stack slides in depth (negative Z goes away from camera)
+            const zPos = componentBaseZ - (i * 1); 
+            const position = new THREE.Vector3(componentBaseX, yPos, zPos);
             generatedSlides.push({
               id: slideId,
               title: individualSlideTitle,
@@ -146,18 +147,17 @@ const PresentationLayoutV4 = ({ setNavigationFunctions }) => {
               individualThickness: actualIndividualSlideThickness,
             });
           }
-          // Overview title for the entire stack, centered in the component slot
+          
           const stackCenterY = currentLayerBaseY + SLIDE_COMPONENT_SLOT_THICKNESS / 2;
           generatedOverviewTitles.push({
             id: `title-${layerIndex}-${componentIndex}`,
             text: component.title,
-            position: new THREE.Vector3(componentBaseX, stackCenterY, componentBaseZ + SLIDE_DEPTH_9 / 2 + 0.05),
+            position: new THREE.Vector3(componentBaseX, stackCenterY + SLIDE_DEPTH_9 / 2 + 0.05, componentBaseZ),
           });
 
         } else {
           const slideId = `${layerIndex}-${componentIndex}-0`;
           generatedOrderedSlideIds.push(slideId);
-          // Center of the single slide within the slot
           const yPos = currentLayerBaseY + SLIDE_COMPONENT_SLOT_THICKNESS / 2;
           const position = new THREE.Vector3(componentBaseX, yPos, componentBaseZ);
           generatedSlides.push({
@@ -165,7 +165,7 @@ const PresentationLayoutV4 = ({ setNavigationFunctions }) => {
             title: component.title, 
             position: position,
             showFrontEdgeTitle: true,
-            individualThickness: actualIndividualSlideThickness, // which is SLIDE_COMPONENT_SLOT_THICKNESS
+            individualThickness: actualIndividualSlideThickness,
           });
         }
         minXOverall = Math.min(minXOverall, componentBaseX - SLIDE_WIDTH_16 / 2);
@@ -187,12 +187,12 @@ const PresentationLayoutV4 = ({ setNavigationFunctions }) => {
 
     let finalMinY = Infinity, finalMaxY = -Infinity;
     let finalMinX = Infinity, finalMaxX = -Infinity;
-    // Calculate bounds based on component slots for camera fitting
+    
     STRUCTURE.forEach((layer, layerIndex) => {
         const numComponents = layer.components.length;
         const layerWidth = (numComponents - 1) * xNodeSpacing;
-        const startX = -layerWidth / 2 - structureCenterX; // Apply centering
-        const layerBaseY = -(layerIndex * yLayerSpacing) - structureCenterY; // Apply centering
+        const startX = -layerWidth / 2 - structureCenterX;
+        const layerBaseY = -(layerIndex * yLayerSpacing) - structureCenterY;
 
         finalMinY = Math.min(finalMinY, layerBaseY);
         finalMaxY = Math.max(finalMaxY, layerBaseY + SLIDE_COMPONENT_SLOT_THICKNESS);
@@ -214,7 +214,7 @@ const PresentationLayoutV4 = ({ setNavigationFunctions }) => {
     if (currentNavigatedIndex >= 0 && currentNavigatedIndex < orderedSlideIds.length) {
       setSelectedSlideId(orderedSlideIds[currentNavigatedIndex]);
     } else {
-      setSelectedSlideId(null); // Go to overview
+      setSelectedSlideId(null);
     }
   }, [currentNavigatedIndex, orderedSlideIds]);
 
@@ -224,17 +224,17 @@ const PresentationLayoutV4 = ({ setNavigationFunctions }) => {
 
   const goToNextSlide = React.useCallback(() => {
     setCurrentNavigatedIndex(prev => {
-      if (prev === -1) return 0; // From overview, go to first slide
+      if (prev === -1) return 0;
       const nextIndex = prev + 1;
-      return nextIndex >= orderedSlideIds.length ? -1 : nextIndex; // If at end, go to overview, else next
+      return nextIndex >= orderedSlideIds.length ? -1 : nextIndex;
     });
   }, [orderedSlideIds.length]);
 
   const goToPrevSlide = React.useCallback(() => {
     setCurrentNavigatedIndex(prev => {
-      if (prev === -1) return orderedSlideIds.length - 1; // From overview, go to last slide
+      if (prev === -1) return orderedSlideIds.length - 1;
       const prevIndex = prev - 1;
-      return prevIndex < 0 ? -1 : prevIndex; // If at beginning, go to overview, else prev
+      return prevIndex < 0 ? -1 : prevIndex;
     });
   }, [orderedSlideIds.length]);
   
@@ -272,6 +272,7 @@ const PresentationLayoutV4 = ({ setNavigationFunctions }) => {
 
   const initialLookAt = React.useMemo(() => new THREE.Vector3(0, 0, 0), []);
 
+  // Camera positioned in front of the structure (positive Z) looking toward it
   const initialCameraPosition = React.useMemo(() => {
     const fovInRadians = camera.fov * (Math.PI / 180);
     const aspect = size.width / size.height;
@@ -279,23 +280,22 @@ const PresentationLayoutV4 = ({ setNavigationFunctions }) => {
     const heightToFit = totalActualHeight + SLIDE_DEPTH_9; 
     const widthToFit = totalActualWidth;
 
-    let zDistanceHeight = SLIDE_DEPTH_9 * 2; 
+    let zDistanceHeight = 20; 
     if (heightToFit > 0) {
         zDistanceHeight = (heightToFit / 2) / Math.tan(fovInRadians / 2);
     }
 
-    let zDistanceWidth = SLIDE_WIDTH_16 * 2; 
+    let zDistanceWidth = 20; 
     if (widthToFit > 0 && aspect > 0) {
         zDistanceWidth = (widthToFit / (2 * aspect)) / Math.tan(fovInRadians / 2);
     }
     
-    const zDistance = Math.max(zDistanceHeight, zDistanceWidth, SLIDE_DEPTH_9 * 2, SLIDE_COMPONENT_SLOT_THICKNESS * 5) * 1.3; 
+    const zDistance = Math.max(zDistanceHeight, zDistanceWidth, 20) * 1.3; 
 
     return new THREE.Vector3(0, 0, zDistance); 
   }, [totalActualHeight, totalActualWidth, camera.fov, size.width, size.height]);
   
   const defaultCameraUp = React.useMemo(() => new THREE.Vector3(0, 1, 0), []);
-  const zoomedInCameraUp = React.useMemo(() => new THREE.Vector3(0, 0, -1), []);
 
   useFrame(() => {
     const targetSlide = selectedSlideId ? slides.find(s => s.id === selectedSlideId) : null;
@@ -303,14 +303,11 @@ const PresentationLayoutV4 = ({ setNavigationFunctions }) => {
 
     if (targetSlide) { 
       const slideMeshPosition = targetSlide.position;
-      const individualThickness = targetSlide.individualThickness; // Get thickness from slide data
-
-      // Y-coordinate of the center of the top content face
-      const contentFaceCenterY = slideMeshPosition.y + (individualThickness / 2);
+      const individualThickness = targetSlide.individualThickness;
 
       const newLookAtPosition = new THREE.Vector3(
         slideMeshPosition.x,
-        contentFaceCenterY, // Look at the center of the top content face
+        slideMeshPosition.y,
         slideMeshPosition.z
       );
 
@@ -322,32 +319,27 @@ const PresentationLayoutV4 = ({ setNavigationFunctions }) => {
 
       const newCameraTargetPosition = new THREE.Vector3(
         newLookAtPosition.x, 
-        newLookAtPosition.y + zoomDistance, // Position camera 'zoomDistance' above the content face center
-        newLookAtPosition.z  
+        newLookAtPosition.y,
+        newLookAtPosition.z + zoomDistance // Position camera in front of the slide
       );
       
       if (targetChanged) {
-        camera.up.copy(zoomedInCameraUp);
-        // Don't immediately copy target - let it lerp smoothly
-        if (controlsRef.current) {
-          // Initialize the lerping towards the new target, but don't jump immediately
-        }
+        camera.up.copy(defaultCameraUp);
+        if (controlsRef.current) controlsRef.current.target.copy(newLookAtPosition);
       }
 
       camera.position.lerp(newCameraTargetPosition, 0.08);
-      
+      camera.lookAt(newLookAtPosition); 
+
       if (controlsRef.current) {
-        // Always smoothly lerp the target, whether it's a new slide or continuing with the same slide
-        controlsRef.current.target.lerp(newLookAtPosition, 0.08);
+        if (!targetChanged) {
+            controlsRef.current.target.lerp(newLookAtPosition, 0.08);
+        }
         controlsRef.current.enabled = false;
       }
-      
-      // Apply lookAt after both position and target have been updated
-      camera.lookAt(controlsRef.current ? controlsRef.current.target : newLookAtPosition); 
-      // NO controls.update() here when targetSlide is active and controls are disabled
 
-    } else { // Overview mode
-      if(targetChanged){ // just switched to overview
+    } else { 
+      if(targetChanged){
          if (controlsRef.current) controlsRef.current.target.copy(initialLookAt);
          camera.up.copy(defaultCameraUp);
       }
@@ -355,22 +347,19 @@ const PresentationLayoutV4 = ({ setNavigationFunctions }) => {
       if (controlsRef.current) {
         controlsRef.current.target.lerp(initialLookAt, 0.08);
         controlsRef.current.enabled = true;
-        camera.lookAt(controlsRef.current.target); // Look at the lerping initialLookAt for overview
-        controlsRef.current.update(); // OrbitControls update only when enabled (overview mode)
+        camera.lookAt(controlsRef.current.target);
       }
     }
+    if (controlsRef.current) controlsRef.current.update();
     previousTargetIdRef.current = targetSlide?.id || null;
   });
 
   useEffect(() => {
-    // This effect now primarily ensures that when we enter overview via nav index, 
-    // the controls target is immediately set for a smooth transition by useFrame.
     if (selectedSlideId === null) { 
         if (controlsRef.current) {
           controlsRef.current.target.copy(initialLookAt);
         }
-        camera.up.copy(defaultCameraUp); // Ensure up is correct for overview
-        // Camera position will be handled by useFrame's lerp to initialCameraPosition
+        camera.up.copy(defaultCameraUp);
     }
   }, [selectedSlideId, initialLookAt, defaultCameraUp]);
 
@@ -379,12 +368,10 @@ const PresentationLayoutV4 = ({ setNavigationFunctions }) => {
     if (index !== -1) {
       goToSlideByIndex(index);
     } else {
-      // Fallback or error if slideId not in ordered list, though should not happen
       goToOverview(); 
     }
   };
   
-  // For the overview titles, they should also dim if any slide is selected.
   const overviewTitlesSpring = useSpring({
     opacity: selectedSlideId !== null ? 0 : 1,
     config: { tension: 200, friction: 20 }
@@ -413,9 +400,10 @@ const PresentationLayoutV4 = ({ setNavigationFunctions }) => {
           />
         ))}
         {overviewTitles.map(titleInfo => (
-            <AnimatedDreiText // Use AnimatedDreiText for overview titles as well
+            <AnimatedDreiText
                 key={titleInfo.id}
                 position={titleInfo.position}
+                rotation={[Math.PI / 2, 0, 0]}
                 fontSize={0.65} 
                 color={"white"} 
                 anchorX="center"
@@ -423,7 +411,7 @@ const PresentationLayoutV4 = ({ setNavigationFunctions }) => {
                 maxWidth={SLIDE_WIDTH_16 * 0.9}
                 textAlign="center"
                 lineHeight={1}
-                fillOpacity={overviewTitlesSpring.opacity} // Animate opacity of overview titles
+                fillOpacity={overviewTitlesSpring.opacity}
             >
                 {titleInfo.text}
             </AnimatedDreiText>
@@ -432,10 +420,10 @@ const PresentationLayoutV4 = ({ setNavigationFunctions }) => {
       {selectedSlideId && (
         <Plane
             args={[size.width * 20, size.height * 20]} 
-            position={camera.position.clone().add(new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion).multiplyScalar(SLIDE_DEPTH_9 * 6))} // Pushed further back
-            onClick={goToOverview} // Use goToOverview for consistency
+            position={camera.position.clone().add(new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion).multiplyScalar(50))}
+            onClick={goToOverview}
             material-transparent
-            material-opacity={0.02} // More transparent backdrop
+            material-opacity={0.02}
             material-color="black"
         />
       )}
@@ -443,7 +431,7 @@ const PresentationLayoutV4 = ({ setNavigationFunctions }) => {
   );
 };
 
-const InteractivePresentationV4 = () => {
+const InteractivePresentationV5 = () => {
   const [navFunctions, setNavFunctions] = useState({
     onPrev: () => {},
     onNext: () => {},
@@ -461,16 +449,11 @@ const InteractivePresentationV4 = () => {
           gl.setClearColor(new THREE.Color('#282c34')); 
         }}
       >
-        <PresentationLayoutV4 setNavigationFunctions={setNavFunctions} />
+        <PresentationLayoutV5 setNavigationFunctions={setNavFunctions} />
       </Canvas>
       <NavigationUI {...navFunctions} />
     </div>
   );
 };
 
-export default InteractivePresentationV4;
-
-// Helper variables for directionalLight shadow camera, needs to be defined or passed if used outside component
-// These are illustrative; PresentationLayoutV4 calculates them internally for its lights.
-const totalActualWidth = 100; // Example fallback
-const totalActualHeight = 100; // Example fallback 
+export default InteractivePresentationV5; 
