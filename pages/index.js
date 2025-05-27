@@ -1,12 +1,11 @@
 import Head from 'next/head';
 import styled from 'styled-components';
-import ThreeDPresentation from '@/components/v2';
-import InteractivePresentation from '@/components/v1';
+import InteractivePresentationV5 from '@/components/v5';
 
 const MainContainer = styled.div`
   width: 100vw;
   height: 100vh;
-  background-color: black;
+  background-color: #1e1e1e;
   color: white;
   display: flex;
   flex-direction: column;
@@ -14,20 +13,18 @@ const MainContainer = styled.div`
   justify-content: center;
 `;
 
-export default function Home() {
-  console.log("Home component rendering");
+export default function V5Page() {
+  console.log("V5Page component rendering");
   return (
     <>
       <Head>
-        <title>PhD Interactive Presentation</title>
-        <meta name="description" content="An interactive 3D presentation" />
+        <title>PhD Interactive Presentation - V5</title>
+        <meta name="description" content="An interactive 3D presentation (V5) with frontal grid layout" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <MainContainer>
-        {/* <InteractivePresentation /> */}
-        <ThreeDPresentation />
-
+        <InteractivePresentationV5 />
       </MainContainer>
     </>
   );
-}
+} 
