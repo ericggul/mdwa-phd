@@ -6,11 +6,17 @@ import { useSpring, a } from '@react-spring/three';
 import { STRUCTURE } from '@/utils/constant';
 import NavigationUI from './NavigationUI';
 
+// Spring config for animations
+const SPRING_CONFIG_NORMAL = { tension: 170, friction: 26 }; // Default for direct transitions
+const SPRING_CONFIG_FLYOVER = { tension: 160, friction: 28 }; // Adjusted for more assertive fly-over
+const FLY_OVER_PAUSE_DURATION = 0; // ms to pause at overview
+
 // Layout constants - using v4's approach but for front-facing slides
 const SLIDE_WIDTH_16 = 16; 
 const SLIDE_DEPTH_9 = 9;   
 const SLIDE_THICKNESS = 0.8; // Thickness of individual slides
 const SLIDE_COMPONENT_SLOT_THICKNESS = 2; // Total thickness each component slot occupies
+const EDGE_TITLE_Z_OFFSET = 0.02; // Added for Z-offsetting titles
 
 const AnimatedDreiText = a(Text);
 
@@ -75,7 +81,7 @@ const Slide = ({ id, position, title, onClick, isSelected, showFrontEdgeTitle, i
       {/* Optional title on the edge for overview visibility */}
       {showFrontEdgeTitle && (
         <AnimatedDreiText
-          position={[0, SLIDE_DEPTH_9 / 2 + 0.05, 0]}
+          position={[0, SLIDE_DEPTH_9 / 2 + 0.05, individualThickness / 2 + EDGE_TITLE_Z_OFFSET]}
           rotation={[Math.PI / 2, 0, 0]}
           fontSize={0.65}
           color={isSelected ? "black" : "white"}
@@ -100,11 +106,16 @@ const PresentationLayoutV5 = ({ setNavigationFunctions }) => {
   const controlsRef = useRef();
   const previousTargetIdRef = useRef(null);
 
-  const { slides, overviewTitles, totalActualHeight, totalActualWidth, orderedSlideIds } = React.useMemo(() => {
+  const [isFlyingOver, setIsFlyingOver] = useState(false);
+  const prevSlideIdAnimRef = useRef(null); // Ref to store previous slide ID for animation logic
+
+  const defaultCameraUp = React.useMemo(() => new THREE.Vector3(0, 1, 0), []);
+
+  const { slides, overviewTitles, totalActualHeight, totalActualWidth, orderedSlideIds, initialLookAt, initialCameraPosition } = React.useMemo(() => {
     const generatedSlides = [];
     const generatedOverviewTitles = [];
     const generatedOrderedSlideIds = [];
-    const yLayerSpacing = SLIDE_COMPONENT_SLOT_THICKNESS * 3; 
+    const yLayerSpacing = SLIDE_DEPTH_9 * 1.2; // Adjusted for proper vertical spacing
     const xNodeSpacing = SLIDE_WIDTH_16 * 1.2; 
 
     let minYOverall = Infinity, maxYOverall = -Infinity;
@@ -152,7 +163,7 @@ const PresentationLayoutV5 = ({ setNavigationFunctions }) => {
           generatedOverviewTitles.push({
             id: `title-${layerIndex}-${componentIndex}`,
             text: component.title,
-            position: new THREE.Vector3(componentBaseX, stackCenterY + SLIDE_DEPTH_9 / 2 + 0.05, componentBaseZ),
+            position: new THREE.Vector3(componentBaseX, stackCenterY + SLIDE_DEPTH_9 / 2 + 0.05, componentBaseZ + (actualIndividualSlideThickness / 2) + EDGE_TITLE_Z_OFFSET),
           });
 
         } else {
@@ -207,8 +218,136 @@ const PresentationLayoutV5 = ({ setNavigationFunctions }) => {
     const calcTotalActualHeight = finalMaxY - finalMinY;
     const calcTotalActualWidth = finalMaxX - finalMinX;
     
-    return { slides: generatedSlides, overviewTitles: generatedOverviewTitles, totalActualHeight: calcTotalActualHeight, totalActualWidth: calcTotalActualWidth, orderedSlideIds: generatedOrderedSlideIds };
-  }, []);
+    // Calculate initialLookAt and initialCameraPosition here as they depend on totalActualHeight/Width
+    const memoizedInitialLookAt = new THREE.Vector3(0, 0, 0);
+
+    const fovInRadians = camera.fov * (Math.PI / 180); // Assuming camera is available or use a default FOV
+    const aspect = size.width / size.height; // Assuming size is available or use a default aspect
+    
+    const heightToFit = calcTotalActualHeight + SLIDE_DEPTH_9; 
+    const widthToFit = calcTotalActualWidth;
+
+    let zDistanceHeight = 20; 
+    if (heightToFit > 0) {
+        zDistanceHeight = (heightToFit / 2) / Math.tan(fovInRadians / 2);
+    }
+
+    let zDistanceWidth = 20; 
+    if (widthToFit > 0 && aspect > 0) {
+        zDistanceWidth = (widthToFit / (2 * aspect)) / Math.tan(fovInRadians / 2);
+    }
+    
+    const zDistance = Math.max(zDistanceHeight, zDistanceWidth, 20) * 1.3;
+    const memoizedInitialCameraPosition = new THREE.Vector3(0, 0, zDistance);
+
+    return { 
+      slides: generatedSlides, 
+      overviewTitles: generatedOverviewTitles, 
+      totalActualHeight: calcTotalActualHeight, 
+      totalActualWidth: calcTotalActualWidth, 
+      orderedSlideIds: generatedOrderedSlideIds,
+      initialLookAt: memoizedInitialLookAt,
+      initialCameraPosition: memoizedInitialCameraPosition
+    };
+  }, [camera.fov, size.width, size.height]); // STRUCTURE is implicitly a dependency due to its usage.
+
+  const [cameraSpring, cameraApi] = useSpring(() => ({
+    position: initialCameraPosition.toArray(),
+    target: initialLookAt.toArray(),
+    up: defaultCameraUp.toArray(),
+    config: SPRING_CONFIG_NORMAL,
+  }));
+
+  // Helper to get section index from slideId
+  const getSectionIndexFromSlideId = (slideId) => {
+    if (!slideId) return -1;
+    const parts = slideId.split('-');
+    return parts.length > 0 ? parseInt(parts[0], 10) : -1;
+  };
+
+  // Helper to calculate camera props for a zoomed-in slide
+  const calculateZoomedInCameraProps = (targetSlide) => {
+    if (!targetSlide) return null;
+    const slideMeshPosition = targetSlide.position;
+    const lookAtPos = new THREE.Vector3(
+      slideMeshPosition.x,
+      slideMeshPosition.y,
+      slideMeshPosition.z // Center of the slide's depth
+    );
+
+    const fovInRadians = camera.fov * (Math.PI / 180);
+    const aspect = size.width / size.height;
+    const distanceForHeightFit = (SLIDE_DEPTH_9 / 2) / Math.tan(fovInRadians / 2);
+    const distanceForWidthFit = (SLIDE_WIDTH_16 / (2 * aspect)) / Math.tan(fovInRadians / 2);
+    const zoomDistance = Math.max(distanceForHeightFit, distanceForWidthFit) * 1.15;
+
+    const cameraPos = new THREE.Vector3(
+      lookAtPos.x,
+      lookAtPos.y,
+      lookAtPos.z + zoomDistance
+    );
+    return { position: cameraPos.toArray(), target: lookAtPos.toArray(), up: defaultCameraUp.toArray() };
+  };
+  
+  useEffect(() => {
+    const targetSlide = selectedSlideId ? slides.find(s => s.id === selectedSlideId) : null;
+    const prevSlideForEffect = prevSlideIdAnimRef.current ? slides.find(s => s.id === prevSlideIdAnimRef.current) : null;
+
+    const currentSectionIndex = targetSlide ? getSectionIndexFromSlideId(targetSlide.id) : -1;
+    const previousSectionIndex = prevSlideForEffect ? getSectionIndexFromSlideId(prevSlideForEffect.id) : -1;
+
+    const shouldFlyOver = prevSlideForEffect && currentSectionIndex !== -1 && previousSectionIndex !== -1 && currentSectionIndex !== previousSectionIndex;
+
+    const overviewCameraProps = {
+      position: initialCameraPosition.toArray(),
+      target: initialLookAt.toArray(),
+      up: defaultCameraUp.toArray()
+    };
+
+    if (targetSlide) {
+      const zoomedInProps = calculateZoomedInCameraProps(targetSlide);
+      if (!zoomedInProps) return;
+
+      if (shouldFlyOver) {
+        setIsFlyingOver(true); // Set immediately
+        cameraApi.start({
+          from: {
+            position: camera.position.toArray(),
+            target: controlsRef.current ? controlsRef.current.target.toArray() : initialLookAt.toArray(),
+            up: camera.up.toArray(),
+          },
+          to: async (next, cancel) => {
+            await next({ ...overviewCameraProps, config: SPRING_CONFIG_NORMAL, immediate: false });
+            await new Promise(res => setTimeout(res, FLY_OVER_PAUSE_DURATION));      
+            await next({ ...zoomedInProps, config: SPRING_CONFIG_NORMAL, immediate: false });
+            setIsFlyingOver(false); // Animation chain itself sets isFlyingOver to false
+          },
+          onStart: () => {
+            setIsFlyingOver(true); // Ensure it's true when animation actually starts
+          },
+          onRest: (result) => { 
+            if (!result.cancelled) {
+                setIsFlyingOver(false);
+            }
+            if (result.finished && zoomedInProps && controlsRef.current) {
+                controlsRef.current.target.fromArray(zoomedInProps.target);
+                camera.lookAt(controlsRef.current.target); 
+            }
+            if (controlsRef.current) controlsRef.current.update();
+          }
+        });
+      } else {
+        setIsFlyingOver(false); 
+      }
+    } else {
+      setIsFlyingOver(false); 
+    }
+  }, [selectedSlideId, slides, cameraApi, initialCameraPosition, initialLookAt, defaultCameraUp, camera.fov, size.width, size.height]); // Dependency camera, size refined to primitives
+
+  // Update prevSlideIdAnimRef *after* the main logic has processed the selectedSlideId change
+  useEffect(() => {
+    prevSlideIdAnimRef.current = selectedSlideId;
+  }, [selectedSlideId]);
 
   useEffect(() => {
     if (currentNavigatedIndex >= 0 && currentNavigatedIndex < orderedSlideIds.length) {
@@ -270,98 +409,79 @@ const PresentationLayoutV5 = ({ setNavigationFunctions }) => {
     }
   }, [setNavigationFunctions, goToPrevSlide, goToNextSlide, goToOverview, currentNavigatedIndex, orderedSlideIds.length]);
 
-  const initialLookAt = React.useMemo(() => new THREE.Vector3(0, 0, 0), []);
-
-  // Camera positioned in front of the structure (positive Z) looking toward it
-  const initialCameraPosition = React.useMemo(() => {
-    const fovInRadians = camera.fov * (Math.PI / 180);
-    const aspect = size.width / size.height;
-    
-    const heightToFit = totalActualHeight + SLIDE_DEPTH_9; 
-    const widthToFit = totalActualWidth;
-
-    let zDistanceHeight = 20; 
-    if (heightToFit > 0) {
-        zDistanceHeight = (heightToFit / 2) / Math.tan(fovInRadians / 2);
-    }
-
-    let zDistanceWidth = 20; 
-    if (widthToFit > 0 && aspect > 0) {
-        zDistanceWidth = (widthToFit / (2 * aspect)) / Math.tan(fovInRadians / 2);
-    }
-    
-    const zDistance = Math.max(zDistanceHeight, zDistanceWidth, 20) * 1.3; 
-
-    return new THREE.Vector3(0, 0, zDistance); 
-  }, [totalActualHeight, totalActualWidth, camera.fov, size.width, size.height]);
-  
-  const defaultCameraUp = React.useMemo(() => new THREE.Vector3(0, 1, 0), []);
-
   useFrame(() => {
-    const targetSlide = selectedSlideId ? slides.find(s => s.id === selectedSlideId) : null;
-    const targetChanged = targetSlide?.id !== previousTargetIdRef.current;
-
-    if (targetSlide) { 
-      const slideMeshPosition = targetSlide.position;
-      const individualThickness = targetSlide.individualThickness;
-
-      const newLookAtPosition = new THREE.Vector3(
-        slideMeshPosition.x,
-        slideMeshPosition.y,
-        slideMeshPosition.z
-      );
-
-      const fovInRadians = camera.fov * (Math.PI / 180);
-      const aspect = size.width / size.height;
-      const distanceForDepthFit = (SLIDE_DEPTH_9 / 2) / Math.tan(fovInRadians / 2); 
-      const distanceForWidthFit = (SLIDE_WIDTH_16 / (2 * aspect)) / Math.tan(fovInRadians / 2); 
-      const zoomDistance = Math.max(distanceForDepthFit, distanceForWidthFit) * 1.15; 
-
-      const newCameraTargetPosition = new THREE.Vector3(
-        newLookAtPosition.x, 
-        newLookAtPosition.y,
-        newLookAtPosition.z + zoomDistance // Position camera in front of the slide
-      );
-      
-      if (targetChanged) {
-        camera.up.copy(defaultCameraUp);
-        if (controlsRef.current) controlsRef.current.target.copy(newLookAtPosition);
-      }
-
-      camera.position.lerp(newCameraTargetPosition, 0.08);
-      camera.lookAt(newLookAtPosition); 
-
+    if (isFlyingOver) {
+      // Apply spring animated values to camera during fly-over
+      camera.position.fromArray(cameraSpring.position.get());
+      camera.up.fromArray(cameraSpring.up.get());
       if (controlsRef.current) {
-        if (!targetChanged) {
-            controlsRef.current.target.lerp(newLookAtPosition, 0.08);
-        }
-        controlsRef.current.enabled = false;
-      }
-
-    } else { 
-      if(targetChanged){
-         if (controlsRef.current) controlsRef.current.target.copy(initialLookAt);
-         camera.up.copy(defaultCameraUp);
-      }
-      camera.position.lerp(initialCameraPosition, 0.08);
-      if (controlsRef.current) {
-        controlsRef.current.target.lerp(initialLookAt, 0.08);
-        controlsRef.current.enabled = true;
+        controlsRef.current.target.fromArray(cameraSpring.target.get());
         camera.lookAt(controlsRef.current.target);
+        controlsRef.current.enabled = false; // Disable controls during fly-over animation
       }
-    }
-    if (controlsRef.current) controlsRef.current.update();
-    previousTargetIdRef.current = targetSlide?.id || null;
-  });
+    } else {
+      // Not flying over: Revert to manual lerping for intra-section and overview transitions
+      const targetSlide = selectedSlideId ? slides.find(s => s.id === selectedSlideId) : null;
 
-  useEffect(() => {
-    if (selectedSlideId === null) { 
-        if (controlsRef.current) {
-          controlsRef.current.target.copy(initialLookAt);
+      if (targetSlide) {
+        const slideMeshPosition = targetSlide.position;
+        // From calculateZoomedInCameraProps, simplified for direct use:
+        const newLookAtPosition = new THREE.Vector3(
+          slideMeshPosition.x,
+          slideMeshPosition.y,
+          slideMeshPosition.z
+        );
+
+        const fovInRadians = camera.fov * (Math.PI / 180);
+        const aspect = size.width / size.height;
+        const distanceForHeightFit = (SLIDE_DEPTH_9 / 2) / Math.tan(fovInRadians / 2);
+        const distanceForWidthFit = (SLIDE_WIDTH_16 / (2 * aspect)) / Math.tan(fovInRadians / 2);
+        const zoomDistance = Math.max(distanceForHeightFit, distanceForWidthFit) * 1.15;
+
+        const newCameraTargetPosition = new THREE.Vector3(
+          newLookAtPosition.x,
+          newLookAtPosition.y,
+          newLookAtPosition.z + zoomDistance
+        );
+
+        // Check if target actually changed to avoid unnecessary calculations / updates if static
+        // This check might be different from the animation trigger, it's for per-frame lerping.
+        const anActualTargetChanged = previousTargetIdRef.current !== selectedSlideId;
+
+        if (anActualTargetChanged) {
+            camera.up.copy(defaultCameraUp); // Standard up for slides
+            // Snap controls target if it changed significantly, otherwise lerp below
+            // if (controlsRef.current) controlsRef.current.target.copy(newLookAtPosition);
         }
-        camera.up.copy(defaultCameraUp);
+
+        camera.position.lerp(newCameraTargetPosition, 0.08);
+        
+        if (controlsRef.current) {
+            controlsRef.current.target.lerp(newLookAtPosition, 0.08);
+            camera.lookAt(controlsRef.current.target);
+            controlsRef.current.enabled = false; // Usually false when a slide is selected
+        }
+
+      } else { // Overview mode (not flying over)
+        // const anActualTargetChanged = previousTargetIdRef.current !== null; // prev was a slide
+        // if (anActualTargetChanged) {
+            // camera.up.copy(defaultCameraUp);
+            // if (controlsRef.current) controlsRef.current.target.copy(initialLookAt);
+        // }
+        camera.up.copy(defaultCameraUp); // Ensure correct up vector for overview
+
+        camera.position.lerp(initialCameraPosition, 0.08);
+        if (controlsRef.current) {
+          controlsRef.current.target.lerp(initialLookAt, 0.08);
+          camera.lookAt(controlsRef.current.target);
+          controlsRef.current.enabled = true; // Enabled in overview
+        }
+      }
+      previousTargetIdRef.current = selectedSlideId; // Update for the next frame's check
     }
-  }, [selectedSlideId, initialLookAt, defaultCameraUp]);
+
+    if (controlsRef.current) controlsRef.current.update();
+  });
 
   const handleSlideClick = (slideId) => {
     const index = orderedSlideIds.findIndex(id => id === slideId);
@@ -395,7 +515,7 @@ const PresentationLayoutV5 = ({ setNavigationFunctions }) => {
             onClick={() => handleSlideClick(slide.id)}
             isSelected={selectedSlideId === slide.id}
             showFrontEdgeTitle={slide.showFrontEdgeTitle}
-            isDimmed={selectedSlideId !== null && selectedSlideId !== slide.id}
+            isDimmed={selectedSlideId !== null && selectedSlideId !== slide.id && !isFlyingOver}
             individualThickness={slide.individualThickness}
           />
         ))}

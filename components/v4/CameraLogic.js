@@ -9,8 +9,10 @@ export const useCameraLogic = (selectedSlideId, slides, controlsRef, initialCame
 
   const defaultCameraUp = useMemo(() => new THREE.Vector3(0, 1, 0), []);
   const zoomedInCameraUp = useMemo(() => new THREE.Vector3(0, 0, -1), []);
+  // let frameCount = 0; // Reduced logging
 
   useFrame(() => {
+    // frameCount++; // Reduced logging
     const targetSlide = selectedSlideId ? slides.find(s => s.id === selectedSlideId) : null;
     const targetChanged = targetSlide?.id !== previousTargetIdRef.current;
 
@@ -38,6 +40,15 @@ export const useCameraLogic = (selectedSlideId, slides, controlsRef, initialCame
       );
       
       if (targetChanged) {
+        console.log(`***** TARGET CHANGED (Slide Mode) *****`);
+        console.log(`    Prev Target ID: ${previousTargetIdRef.current}, New Target ID: ${targetSlide.id}`);
+        console.log(`    Setting camera.up to zoomedIn:`, zoomedInCameraUp.toArray());
+        console.log(`    Cam Pos BEFORE Lerp:`, camera.position.clone().toArray());
+        if (controlsRef.current) {
+          console.log(`    Controls Target BEFORE Lerp:`, controlsRef.current.target.clone().toArray());
+        }
+        console.log(`    New LookAt Goal:`, newLookAtPosition.toArray());
+        console.log(`    New Cam Pos Goal:`, newCameraTargetPosition.toArray());
         camera.up.copy(zoomedInCameraUp);
       }
 
@@ -48,12 +59,17 @@ export const useCameraLogic = (selectedSlideId, slides, controlsRef, initialCame
         controlsRef.current.enabled = true;
       }
       
-      camera.lookAt(controlsRef.current ? controlsRef.current.target : newLookAtPosition); 
+      // Use newLookAtPosition when target just changed to avoid looking at stale target
+      const lookAtTarget = targetChanged ? newLookAtPosition : (controlsRef.current ? controlsRef.current.target : newLookAtPosition);
+      camera.lookAt(lookAtTarget);
 
     } else { // Overview mode
-      if(targetChanged){ 
-         if (controlsRef.current) controlsRef.current.target.copy(initialLookAt);
-         camera.up.copy(defaultCameraUp);
+      if(targetChanged){
+        console.log(`***** SWITCHING TO OVERVIEW *****`);
+        console.log(`    Prev Target ID: ${previousTargetIdRef.current}`);
+        if (controlsRef.current) controlsRef.current.target.copy(initialLookAt);
+        console.log(`    Setting camera.up to default:`, defaultCameraUp.toArray());
+        camera.up.copy(defaultCameraUp);
       }
       camera.position.lerp(initialCameraPosition, CAMERA_LERP_SPEED);
       if (controlsRef.current) {
@@ -66,15 +82,20 @@ export const useCameraLogic = (selectedSlideId, slides, controlsRef, initialCame
     previousTargetIdRef.current = targetSlide?.id || null;
   });
 
-  // Effect for initially setting overview state
   useEffect(() => {
+    console.log("[Initial Effect] Fired. Setting up for overview or initial slide.");
     if (selectedSlideId === null) { 
+        console.log("    Mode: Overview. Setting initial controls target and camera.up.");
         if (controlsRef.current) {
           controlsRef.current.target.copy(initialLookAt);
         }
         camera.up.copy(defaultCameraUp);
+    } else {
+        console.log(`    Mode: Slide selected (${selectedSlideId}). Ensuring camera.up is zoomedIn.`);
+        // This ensures that if we land directly on a slide, the camera.up is correct from the start.
+        camera.up.copy(zoomedInCameraUp); 
     }
   }, [selectedSlideId, initialLookAt, defaultCameraUp, camera, controlsRef]);
 
-  return { defaultCameraUp, zoomedInCameraUp }; // Exporting these if PresentationLayout needs them
+  return { defaultCameraUp, zoomedInCameraUp }; 
 }; 
