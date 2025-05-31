@@ -1,116 +1,22 @@
 import React, { useRef, useState, useEffect, Suspense } from 'react';
-import { Canvas, useThree, useFrame } from '@react-three/fiber';
+import { useThree, useFrame } from '@react-three/fiber';
 import { OrbitControls, Text, Plane } from '@react-three/drei';
 import * as THREE from 'three';
-import { useSpring, a } from '@react-spring/three';
+import { useSpring } from '@react-spring/three';
 import { STRUCTURE } from '@/utils/constant';
-import NavigationUI from './NavigationUI';
-
-// Spring config for animations
-const SPRING_CONFIG_NORMAL = { tension: 170, friction: 26 }; // Default for direct transitions
-const SPRING_CONFIG_FLYOVER = { tension: 160, friction: 28 }; // Adjusted for more assertive fly-over
-const FLY_OVER_PAUSE_DURATION = 0; // ms to pause at overview
-
-// Layout constants - using v4's approach but for front-facing slides
-const SLIDE_WIDTH_16 = 16; 
-const SLIDE_DEPTH_9 = 9;   
-const SLIDE_THICKNESS = 0.8; // Thickness of individual slides
-const SLIDE_COMPONENT_SLOT_THICKNESS = 2; // Total thickness each component slot occupies
-const EDGE_TITLE_Z_OFFSET = 0.02; // Added for Z-offsetting titles
-
-const AnimatedDreiText = a(Text);
-
-// BoxGeometry: [width, height, depth] where slides face forward (positive Z)
-const slideBoxArgs = [SLIDE_WIDTH_16, SLIDE_DEPTH_9, SLIDE_THICKNESS];
-
-const Slide = ({ id, position, title, onClick, isSelected, showFrontEdgeTitle, individualThickness, animatedOpacity, isStrictlyHidden }) => {
-  const meshRef = useRef();
-  const [hovered, setHover] = useState(false);
-
-  // console.log(`[Slide ${id}] Props: isSelected=${isSelected}, animatedOpacity=${animatedOpacity}, isStrictlyHidden=${isStrictlyHidden}`);
-
-  const springProps = useSpring({
-    scale: hovered && !isSelected ? 1.05 : 1,
-    meshOpacity: animatedOpacity,
-    textOpacity: animatedOpacity,
-    config: SPRING_CONFIG_NORMAL,
-    onRest: () => {
-      // console.log(`[Slide ${id}] Spring onRest. meshOpacity is now: ${springProps.meshOpacity.get()}`);
-    }
-  });
-  
-  useEffect(() => {
-    // console.log(`[Slide ${id}] springProps.meshOpacity updated: ${springProps.meshOpacity.get()}, isStrictlyHidden: ${isStrictlyHidden}`);
-  }, [springProps.meshOpacity, id, isStrictlyHidden]);
-
-  const adjustedBoxArgs = [SLIDE_WIDTH_16, SLIDE_DEPTH_9, individualThickness];
-
-  return (
-    <a.mesh
-      ref={meshRef}
-      position={position}
-      scale={springProps.scale}
-      visible={!isStrictlyHidden && springProps.meshOpacity.get() > 0.01} // Apply strict hide and opacity-based visibility
-      onClick={(event) => {
-        event.stopPropagation();
-        onClick();
-      }}
-      onPointerOver={(event) => {
-        event.stopPropagation();
-        if (!isSelected) setHover(true);
-      }}
-      onPointerOut={(event) => {
-        event.stopPropagation();
-        setHover(false);
-      }}
-    >
-      <boxGeometry args={adjustedBoxArgs} />
-      <a.meshStandardMaterial 
-        color={isSelected ? 'lightgreen' : hovered ? 'skyblue' : '#CCCCCC'} 
-        roughness={0.6} 
-        metalness={0.2} 
-        transparent
-        opacity={springProps.meshOpacity}
-        depthWrite={!isStrictlyHidden && springProps.meshOpacity.get() < 1 ? false : true} // Adjust depthWrite based on strict hide too
-      />
-      
-      <AnimatedDreiText
-        position={[0, 0, individualThickness / 2 + 0.02]}
-        fontSize={0.7}
-        color="black"
-        anchorX="center"
-        anchorY="middle"
-        maxWidth={SLIDE_WIDTH_16 * 0.85}
-        textAlign="center"
-        lineHeight={1.2}
-        fillOpacity={springProps.textOpacity}
-      >
-        {title}
-      </AnimatedDreiText>
-
-      {showFrontEdgeTitle && (
-        <AnimatedDreiText
-          position={[0, SLIDE_DEPTH_9 / 2 + 0.05, individualThickness / 2 + EDGE_TITLE_Z_OFFSET]}
-          rotation={[Math.PI / 2, 0, 0]}
-          fontSize={0.65}
-          color={isSelected ? "black" : "white"}
-          anchorX="center"
-          anchorY="middle"
-          maxWidth={SLIDE_WIDTH_16 * 0.9}
-          textAlign="center"
-          lineHeight={1}
-          fillOpacity={springProps.textOpacity}
-        >
-          {title}
-        </AnimatedDreiText>
-      )}
-    </a.mesh>
-  );
-};
+import Slide from './Slide';
+import { 
+  SPRING_CONFIG_NORMAL, 
+  FLY_OVER_PAUSE_DURATION,
+  SLIDE_WIDTH_16, 
+  SLIDE_DEPTH_9, 
+  SLIDE_COMPONENT_SLOT_THICKNESS 
+} from './constants';
 
 const PresentationLayoutV5 = ({ setNavigationFunctions }) => {
   const [selectedSlideId, setSelectedSlideId] = useState(null);
   const [currentNavigatedIndex, setCurrentNavigatedIndex] = useState(-1);
+  const [visuallySelectedSlideId, setVisuallySelectedSlideId] = useState(null);
   const { camera, size } = useThree();
   const controlsRef = useRef();
   const previousTargetIdRef = useRef(null); 
@@ -276,12 +182,19 @@ const PresentationLayoutV5 = ({ setNavigationFunctions }) => {
       if (shouldFlyOver) {
         console.log(`[CameraEffect] Starting FLY OVER from ${previousSelectedIdForEffect} to ${currentSelectedId}`);
         setIsFlyingOver(true);
+        setVisuallySelectedSlideId(previousSelectedIdForEffect);
         dimmingApi.start({ opacity: 1, immediate: false, config: SPRING_CONFIG_NORMAL, onRest: () => {} /* console.log("[Dimming] Fly-over dimming (to 1) onRest") */ });
         cameraApi.start({
           from: { position: camera.position.toArray(), target: controlsRef.current ? controlsRef.current.target.toArray() : initialLookAt.toArray(), up: camera.up.toArray() },
           to: async (next) => {
             console.log("[CameraEffect FlyOver TO] Zooming OUT to overview.");
-            await next({ ...overviewCameraProps, config: SPRING_CONFIG_NORMAL, immediate: false });
+            // Start zooming out
+            const zoomOutPromise = next({ ...overviewCameraProps, config: SPRING_CONFIG_NORMAL, immediate: false });
+            // Transition visual selection halfway through zoom-out
+            setTimeout(() => {
+              setVisuallySelectedSlideId(currentSelectedId);
+            }, 300); // Smooth transition during zoom-out
+            await zoomOutPromise;
             console.log("[CameraEffect FlyOver TO] Pausing at overview.");
             await new Promise(res => setTimeout(res, FLY_OVER_PAUSE_DURATION));      
             console.log(`[CameraEffect FlyOver TO] Zooming IN to ${currentSelectedId}.`);
@@ -295,8 +208,10 @@ const PresentationLayoutV5 = ({ setNavigationFunctions }) => {
             console.log(`[CameraEffect FlyOver] onRest. Cancelled: ${result.cancelled}, Finished: ${result.finished}. Setting setIsFlyingOver(false).`);
             setIsFlyingOver(false);
             if (!result.cancelled && result.finished) {
-                if (selectedSlideId) dimmingApi.start({ opacity: 0, immediate: false, config: SPRING_CONFIG_NORMAL, onRest: () => {} /* console.log("[Dimming] Post-fly-over dimming (to 0) onRest") */ });
                 if (zoomedInProps && controlsRef.current) controlsRef.current.target.fromArray(zoomedInProps.target);
+                setTimeout(() => {
+                  if (selectedSlideId) dimmingApi.start({ opacity: 0.1, immediate: false, config: SPRING_CONFIG_NORMAL, onRest: () => {} /* console.log("[Dimming] Post-fly-over dimming (to 0.1) onRest") */ });
+                }, 50);
             }
             if (controlsRef.current) controlsRef.current.update();
           }
@@ -304,8 +219,8 @@ const PresentationLayoutV5 = ({ setNavigationFunctions }) => {
       } else { 
         console.log(`[CameraEffect] Starting DIRECT transition to ${currentSelectedId}. Previous: ${previousSelectedIdForEffect}`);
         setIsFlyingOver(false); 
-        console.log(`[CameraEffect] Dimming non-selected slides (opacity 0) for DIRECT transition. IMMEDIATE.`);
-        dimmingApi.start({ opacity: 0, immediate: true, onRest: () => {} /* console.log("[Dimming] Direct transition dimming (to 0) onRest") */ });
+        console.log(`[CameraEffect] Dimming non-selected slides (opacity 0.1) for DIRECT transition. IMMEDIATE.`);
+        dimmingApi.start({ opacity: 0.1, immediate: true, onRest: () => {} /* console.log("[Dimming] Direct transition dimming (to 0.1) onRest") */ });
       }
     } else { 
       console.log(`[CameraEffect] Going to OVERVIEW. Previous: ${previousSelectedIdForEffect}`);
@@ -392,6 +307,12 @@ const PresentationLayoutV5 = ({ setNavigationFunctions }) => {
     goToOverview();
   };
 
+  useEffect(() => {
+    if (!isFlyingOver) {
+      setVisuallySelectedSlideId(selectedSlideId);
+    }
+  }, [selectedSlideId, isFlyingOver]);
+
   return (
     <>
       <OrbitControls ref={controlsRef} />
@@ -402,6 +323,7 @@ const PresentationLayoutV5 = ({ setNavigationFunctions }) => {
       <Suspense fallback={ <Text position={[0,0,0]} fontSize={1.5} color="white" anchorX="center" anchorY="middle">Loading PhD Proposal...</Text> }>
         {slides.map(slide => {
           const isActuallySelected = selectedSlideId === slide.id;
+          const isVisuallySelected = visuallySelectedSlideId === slide.id;
           let isStrictlyHidden = false;
           if (slide.isStackedPart && slide.partIndex === 0 && selectedSlideId) {
             const baseCurrentSlideId = getBaseSlideId(slide.id);
@@ -417,9 +339,17 @@ const PresentationLayoutV5 = ({ setNavigationFunctions }) => {
           
           // console.log(`[RenderSlides] Slide: ${slide.id}, isSelected: ${isActuallySelected}, isStrictlyHidden: ${isStrictlyHidden}, isFlyingOver: ${isFlyingOver}, dimmingOpacity: ${dimmingSpring.opacity.get()}`);
 
-          const currentAnimatedOpacity = (isActuallySelected || selectedSlideId === null || isFlyingOver) 
-                                         ? 1 
-                                         : dimmingSpring.opacity;
+          let currentAnimatedOpacity;
+          if (isActuallySelected) {
+            // Selected slide is ALWAYS visible
+            currentAnimatedOpacity = 1;
+          } else if (selectedSlideId === null || isFlyingOver) {
+            // Overview mode or during fly-over: all slides visible
+            currentAnimatedOpacity = 1;
+          } else {
+            // Non-selected slides get dimmed
+            currentAnimatedOpacity = dimmingSpring.opacity;
+          }
           
           return (
             <Slide
@@ -428,7 +358,7 @@ const PresentationLayoutV5 = ({ setNavigationFunctions }) => {
               position={slide.position}
               title={slide.title}
               onClick={() => handleSlideClick(slide.id)}
-              isSelected={isActuallySelected}
+              isSelected={isVisuallySelected}
               showFrontEdgeTitle={slide.showFrontEdgeTitle}
               animatedOpacity={currentAnimatedOpacity}
               individualThickness={slide.individualThickness}
@@ -442,16 +372,4 @@ const PresentationLayoutV5 = ({ setNavigationFunctions }) => {
   );
 };
 
-const InteractivePresentationV5 = () => {
-  const [navFunctions, setNavFunctions] = useState({ onPrev: () => {}, onNext: () => {}, onOverview: () => {}, currentIndex: -1, totalSlides: 0 });
-  return (
-    <div style={{ width: '100%', height: '100%', position: 'relative' }}>
-      <Canvas camera={{ fov: 50 }} style={{ width: '100%', height: '100%' }} onCreated={({ gl }) => { gl.setClearColor(new THREE.Color('#1a1a1f')); }}>
-        <PresentationLayoutV5 setNavigationFunctions={setNavFunctions} />
-      </Canvas>
-      <NavigationUI {...navFunctions} />
-    </div>
-  );
-};
-
-export default InteractivePresentationV5; 
+export default PresentationLayoutV5; 
