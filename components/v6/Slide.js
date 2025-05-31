@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Text } from '@react-three/drei';
+import { Text, useTexture } from '@react-three/drei';
 import { useSpring, a } from '@react-spring/three';
 import { 
   SPRING_CONFIG_NORMAL, 
@@ -10,9 +10,34 @@ import {
 
 const AnimatedDreiText = a(Text);
 
-const Slide = ({ id, position, title, onClick, isSelected, showFrontEdgeTitle, individualThickness, animatedOpacity, isStrictlyHidden }) => {
+const Slide = ({ id, position, title, onClick, isSelected, showFrontEdgeTitle, individualThickness, animatedOpacity, isStrictlyHidden, imageUrl }) => {
   const meshRef = useRef();
   const [hovered, setHover] = useState(false);
+
+  // Load texture if imageUrl is provided
+  const texture = imageUrl ? useTexture(imageUrl) : null;
+
+  // Set texture properties to preserve aspect ratio and fit within slide bounds
+  if (texture && texture.image) {
+    const imageAspect = texture.image.width / texture.image.height;
+    const slideAspect = SLIDE_WIDTH_16 / SLIDE_DEPTH_9;
+    
+    // Calculate scale to fit image within slide bounds (like object-fit: contain)
+    let scaleX, scaleY;
+    if (imageAspect > slideAspect) {
+      // Image is wider than slide - scale based on width
+      scaleX = 1;
+      scaleY = imageAspect / slideAspect;
+    } else {
+      // Image is taller than slide - scale based on height  
+      scaleX = slideAspect / imageAspect;
+      scaleY = 1;
+    }
+    
+    texture.repeat.set(scaleX, scaleY);
+    texture.center.set(0.5, 0.5);
+    texture.offset.set(0, 0);
+  }
 
   // console.log(`[Slide ${id}] Props: isSelected=${isSelected}, animatedOpacity=${animatedOpacity}, isStrictlyHidden=${isStrictlyHidden}`);
 
@@ -31,6 +56,17 @@ const Slide = ({ id, position, title, onClick, isSelected, showFrontEdgeTitle, i
   }, [springProps.meshOpacity, id, isStrictlyHidden]);
 
   const adjustedBoxArgs = [SLIDE_WIDTH_16, SLIDE_DEPTH_9, individualThickness];
+
+  // Determine material color: no green highlight if texture is present
+  const getMaterialColor = () => {
+    if (texture) {
+      // If texture exists, use neutral color regardless of selection/hover state
+      return 'white';
+    } else {
+      // Original color logic for non-textured slides
+      return isSelected ? 'lightgreen' : hovered ? 'skyblue' : '#CCCCCC';
+    }
+  };
 
   return (
     <a.mesh
@@ -53,44 +89,30 @@ const Slide = ({ id, position, title, onClick, isSelected, showFrontEdgeTitle, i
     >
       <boxGeometry args={adjustedBoxArgs} />
       <a.meshStandardMaterial 
-        color={isSelected ? 'lightgreen' : hovered ? 'skyblue' : '#CCCCCC'} 
+        color={getMaterialColor()}
         roughness={0.6} 
         metalness={0.2} 
         transparent
         opacity={springProps.meshOpacity}
-        depthWrite={!isStrictlyHidden && springProps.meshOpacity.get() < 1 ? false : true} // Adjust depthWrite based on strict hide too
+        depthWrite={!isStrictlyHidden && springProps.meshOpacity.get() < 1 ? false : true}
+        map={texture} // Apply texture if available
       />
       
+      {/* Only show text title if no image, or show it with reduced opacity over image */}
       <AnimatedDreiText
         position={[0, 0, individualThickness / 2 + 0.02]}
-        fontSize={0.7}
-        color="black"
+        fontSize={texture ? 0.8 : 1} // Smaller font if there's an image
+        color={texture ? "white" : "black"} // White text over image, black over solid color
         anchorX="center"
         anchorY="middle"
         maxWidth={SLIDE_WIDTH_16 * 0.85}
         textAlign="center"
         lineHeight={1.2}
-        fillOpacity={springProps.textOpacity}
+        fillOpacity={texture ? springProps.textOpacity * 0.9 : springProps.textOpacity} // Slightly more transparent over image
       >
         {title}
       </AnimatedDreiText>
 
-      {showFrontEdgeTitle && (
-        <AnimatedDreiText
-          position={[0, SLIDE_DEPTH_9 / 2 + 0.05, individualThickness / 2 + EDGE_TITLE_Z_OFFSET]}
-          rotation={[Math.PI / 2, 0, 0]}
-          fontSize={0.65}
-          color={isSelected ? "black" : "white"}
-          anchorX="center"
-          anchorY="middle"
-          maxWidth={SLIDE_WIDTH_16 * 0.9}
-          textAlign="center"
-          lineHeight={1}
-          fillOpacity={springProps.textOpacity}
-        >
-          {title}
-        </AnimatedDreiText>
-      )}
     </a.mesh>
   );
 };

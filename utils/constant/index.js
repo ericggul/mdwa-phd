@@ -36,12 +36,15 @@ export const STRUCTURE = [
         components: [
             {
                 title: 'Interactive Taxonomy',
+                slideCount: 2
             },
             {
-                title: 'State-based Architecture'
+                title: 'State-based Architecture',
+                slideCount: 2
             },
             {
-                title: 'Dimensional Transformation'
+                title: 'Dimensional Transformation',
+                slideCount: 2
             }
         ]
     },
@@ -58,6 +61,7 @@ export const STRUCTURE = [
         components: [
             {
                 title: 'Case Study 1',
+                slideCount: 3
             },
             {
                 title: 'Case Study 2',

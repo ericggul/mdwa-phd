@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect, Suspense } from 'react';
 import { useThree, useFrame } from '@react-three/fiber';
-import { OrbitControls, Text, Plane } from '@react-three/drei';
+import { OrbitControls, Text, Plane, Environment } from '@react-three/drei';
 import * as THREE from 'three';
 import { useSpring } from '@react-spring/three';
 import { STRUCTURE } from '@/utils/constant';
@@ -49,21 +49,24 @@ const PresentationLayoutV5 = ({ setNavigationFunctions }) => {
       layer.components.forEach((component, componentIndex) => {
         const componentBaseX = startX + componentIndex * xNodeSpacing;
         const componentBaseZ = 0; 
-        const isFrameworkComponent = layer.section === 'Framework Design' &&
-                                     (component.title === 'Interactive Taxonomy' ||
-                                      component.title === 'State-based Architecture' ||
-                                      component.title === 'Dimensional Transformation');
-        const numSlidesForThisComponent = isFrameworkComponent ? 2 : 1;
+        const numSlidesForThisComponent = component.slideCount || 1; // Dynamic slide count from constants
         const actualIndividualSlideThickness = SLIDE_COMPONENT_SLOT_THICKNESS / numSlidesForThisComponent;
 
         if (numSlidesForThisComponent > 1) {
           for (let i = 0; i < numSlidesForThisComponent; i++) {
             const slideId = `${layerIndex}-${componentIndex}-${i}`;
             generatedOrderedSlideIds.push(slideId);
-            const individualSlideTitle = `${component.title} (Part ${i + 1})`;
+            const individualSlideTitle = component.title; // Remove "Part X" from title
             const yPos = currentLayerBaseY + SLIDE_COMPONENT_SLOT_THICKNESS / 2;
             const zPos = componentBaseZ - (i * actualIndividualSlideThickness * 1.1); 
             const position = new THREE.Vector3(componentBaseX, yPos, zPos);
+            
+            // Determine image URL for specific slides
+            let imageUrl = null;
+            if (component.title === 'Dimensional Transformation' && i === 0) {
+              imageUrl = '/images/fig5.png'; // First DT slide gets fig5.png
+            }
+            
             // console.log(`[Layout] Stacked Slide: ${slideId}, Position: {x: ${position.x.toFixed(2)}, y: ${position.y.toFixed(2)}, z: ${position.z.toFixed(2)}}`);
             generatedSlides.push({
               id: slideId,
@@ -72,7 +75,8 @@ const PresentationLayoutV5 = ({ setNavigationFunctions }) => {
               showFrontEdgeTitle: false, 
               individualThickness: actualIndividualSlideThickness,
               isStackedPart: true, // Mark as part of a stack
-              partIndex: i // Mark its index in the stack (0 for front, 1 for back)
+              partIndex: i, // Mark its index in the stack (0 for front, 1 for back)
+              imageUrl: imageUrl // Add image URL
             });
           }
         } else {
@@ -85,10 +89,11 @@ const PresentationLayoutV5 = ({ setNavigationFunctions }) => {
             id: slideId,
             title: component.title, 
             position: position,
-            showFrontEdgeTitle: true,
+            showFrontEdgeTitle: false,
             individualThickness: actualIndividualSlideThickness,
             isStackedPart: false,
-            partIndex: 0
+            partIndex: 0,
+            imageUrl: null // No image for single slides by default
           });
         }
         minXOverall = Math.min(minXOverall, componentBaseX - SLIDE_WIDTH_16 / 2);
@@ -317,6 +322,7 @@ const PresentationLayoutV5 = ({ setNavigationFunctions }) => {
     <>
       <OrbitControls ref={controlsRef} />
       <ambientLight intensity={0.5} />
+      <Environment preset="sunset" />
       <hemisphereLight skyColor={0xadd8e6} groundColor={0x444444} intensity={0.5} />
       <directionalLight position={[40, 50, 60]} intensity={1.5} castShadow shadow-mapSize-width={1024} shadow-mapSize-height={1024} shadow-camera-far={150} shadow-camera-left={-30} shadow-camera-right={30} shadow-camera-top={30} shadow-camera-bottom={-30} />
       <directionalLight position={[-30, -20, -40]} intensity={0.3} />
@@ -363,6 +369,7 @@ const PresentationLayoutV5 = ({ setNavigationFunctions }) => {
               animatedOpacity={currentAnimatedOpacity}
               individualThickness={slide.individualThickness}
               isStrictlyHidden={isStrictlyHidden}
+              imageUrl={slide.imageUrl}
             />
           );
         })}
