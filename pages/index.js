@@ -1,6 +1,6 @@
 import Head from 'next/head';
 import styled from 'styled-components';
-import InteractivePresentationV5 from '@/components/v5';
+import InteractivePresentationV7 from '@/components/v7';
 
 const MainContainer = styled.div`
   width: 100vw;
@@ -23,7 +23,7 @@ export default function V5Page() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <MainContainer>
-        <InteractivePresentationV5 />
+        <InteractivePresentationV7 />
       </MainContainer>
     </>
   );

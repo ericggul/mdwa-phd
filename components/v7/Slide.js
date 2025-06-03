@@ -73,7 +73,9 @@ const Slide = ({ id, position, title, onClick, isSelected, showFrontEdgeTitle, i
         textAlign="center"
         lineHeight={1.2}
         fillOpacity={springProps.textOpacity}
-        //font
+        // Using a geometric sans-serif similar to Futura
+        // For true Futura, you'd need to add Futura font files to your public/fonts directory
+        // font="/fonts/futura-medium.json" // Uncomment if you have Futura font files
         fontWeight={300}
       >
         {title}
