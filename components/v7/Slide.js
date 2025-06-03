@@ -73,6 +73,8 @@ const Slide = ({ id, position, title, onClick, isSelected, showFrontEdgeTitle, i
         textAlign="center"
         lineHeight={1.2}
         fillOpacity={springProps.textOpacity}
+        //font
+        fontWeight={300}
       >
         {title}
       </AnimatedDreiText>

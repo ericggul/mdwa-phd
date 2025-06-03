@@ -2,11 +2,12 @@ import React, { useRef, useState, useEffect, Suspense } from 'react';
 import { useThree, useFrame } from '@react-three/fiber';
 import { OrbitControls, Text, Plane, Environment } from '@react-three/drei';
 import * as THREE from 'three';
-import { useSpring } from '@react-spring/three';
+import { useSpring, a } from '@react-spring/three';
 import { STRUCTURE } from '@/utils/constant';
 import Slide from './Slide';
 import { 
   SPRING_CONFIG_NORMAL, 
+  SPRING_CONFIG_FLYOVER, 
   FLY_OVER_PAUSE_DURATION,
   SLIDE_WIDTH_16, 
   SLIDE_DEPTH_9, 
@@ -33,21 +34,21 @@ const PresentationLayoutV5 = ({ setNavigationFunctions }) => {
     // console.log("[Layout] Recalculating slides geometry...");
     const generatedSlides = [];
     const generatedOrderedSlideIds = [];
-    const yLayerSpacing = SLIDE_DEPTH_9 * 1.2; 
-    const xNodeSpacing = SLIDE_WIDTH_16 * 1.2; 
+    const xLayerSpacing = SLIDE_WIDTH_16 * 1.1; // Horizontal spacing between layers
+    const yNodeSpacing = SLIDE_DEPTH_9 * 1.1; // Vertical spacing between components within a layer
     let minYOverall = Infinity, maxYOverall = -Infinity;
     let minXOverall = Infinity, maxXOverall = -Infinity;
 
     STRUCTURE.forEach((layer, layerIndex) => {
       const numComponents = layer.components.length;
-      const layerWidth = (numComponents - 1) * xNodeSpacing;
-      const startX = -layerWidth / 2;
-      const currentLayerBaseY = -(layerIndex * yLayerSpacing);
-      minYOverall = Math.min(minYOverall, currentLayerBaseY);
-      maxYOverall = Math.max(maxYOverall, currentLayerBaseY + SLIDE_COMPONENT_SLOT_THICKNESS);
+      const layerHeight = (numComponents - 1) * yNodeSpacing;
+      const startY = layerHeight / 2;
+      const currentLayerBaseX = layerIndex * xLayerSpacing;
+      minXOverall = Math.min(minXOverall, currentLayerBaseX);
+      maxXOverall = Math.max(maxXOverall, currentLayerBaseX + SLIDE_COMPONENT_SLOT_THICKNESS);
 
       layer.components.forEach((component, componentIndex) => {
-        const componentBaseX = startX + componentIndex * xNodeSpacing;
+        const componentBaseY = startY - componentIndex * yNodeSpacing;
         const componentBaseZ = 0; 
         const numSlidesForThisComponent = component.slideCount || 1; // Dynamic slide count from constants
         const actualIndividualSlideThickness = SLIDE_COMPONENT_SLOT_THICKNESS / numSlidesForThisComponent;
@@ -57,9 +58,9 @@ const PresentationLayoutV5 = ({ setNavigationFunctions }) => {
             const slideId = `${layerIndex}-${componentIndex}-${i}`;
             generatedOrderedSlideIds.push(slideId);
             const individualSlideTitle = component.title; // Remove "Part X" from title
-            const yPos = currentLayerBaseY + SLIDE_COMPONENT_SLOT_THICKNESS / 2;
+            const xPos = currentLayerBaseX + SLIDE_COMPONENT_SLOT_THICKNESS / 2;
             const zPos = componentBaseZ - (i * actualIndividualSlideThickness * 1.1); 
-            const position = new THREE.Vector3(componentBaseX, yPos, zPos);
+            const position = new THREE.Vector3(xPos, componentBaseY, zPos);
             // console.log(`[Layout] Stacked Slide: ${slideId}, Position: {x: ${position.x.toFixed(2)}, y: ${position.y.toFixed(2)}, z: ${position.z.toFixed(2)}}`);
             generatedSlides.push({
               id: slideId,
@@ -74,8 +75,8 @@ const PresentationLayoutV5 = ({ setNavigationFunctions }) => {
         } else {
           const slideId = `${layerIndex}-${componentIndex}-0`;
           generatedOrderedSlideIds.push(slideId);
-          const yPos = currentLayerBaseY + SLIDE_COMPONENT_SLOT_THICKNESS / 2;
-          const position = new THREE.Vector3(componentBaseX, yPos, componentBaseZ);
+          const xPos = currentLayerBaseX + SLIDE_COMPONENT_SLOT_THICKNESS / 2;
+          const position = new THREE.Vector3(xPos, componentBaseY, componentBaseZ);
           // console.log(`[Layout] Single Slide: ${slideId}, Position: {x: ${position.x.toFixed(2)}, y: ${position.y.toFixed(2)}, z: ${position.z.toFixed(2)}}`);
           generatedSlides.push({
             id: slideId,
@@ -87,28 +88,28 @@ const PresentationLayoutV5 = ({ setNavigationFunctions }) => {
             partIndex: 0
           });
         }
-        minXOverall = Math.min(minXOverall, componentBaseX - SLIDE_WIDTH_16 / 2);
-        maxXOverall = Math.max(maxXOverall, componentBaseX + SLIDE_WIDTH_16 / 2);
+        minYOverall = Math.min(minYOverall, componentBaseY - SLIDE_DEPTH_9 / 2);
+        maxYOverall = Math.max(maxYOverall, componentBaseY + SLIDE_DEPTH_9 / 2);
       });
     });
     
-    const structureCenterY = (minYOverall + maxYOverall) / 2;
-    const structureCenterX = (minXOverall + maxXOverall) / 2; 
-    generatedSlides.forEach(s => { s.position.y -= structureCenterY; s.position.x -= structureCenterX; });
+    const structureCenterX = (minXOverall + maxXOverall) / 2;
+    const structureCenterY = (minYOverall + maxYOverall) / 2; 
+    generatedSlides.forEach(s => { s.position.x -= structureCenterX; s.position.y -= structureCenterY; });
 
     let finalMinY = Infinity, finalMaxY = -Infinity;
     let finalMinX = Infinity, finalMaxX = -Infinity;
     STRUCTURE.forEach((layer, layerIndex) => {
         const numComponents = layer.components.length;
-        const layerWidth = (numComponents - 1) * xNodeSpacing;
-        const startX = -layerWidth / 2 - structureCenterX;
-        const layerBaseY = -(layerIndex * yLayerSpacing) - structureCenterY;
-        finalMinY = Math.min(finalMinY, layerBaseY);
-        finalMaxY = Math.max(finalMaxY, layerBaseY + SLIDE_COMPONENT_SLOT_THICKNESS);
+        const layerHeight = (numComponents - 1) * yNodeSpacing;
+        const startY = layerHeight / 2 - structureCenterY;
+        const layerBaseX = layerIndex * xLayerSpacing - structureCenterX;
+        finalMinX = Math.min(finalMinX, layerBaseX);
+        finalMaxX = Math.max(finalMaxX, layerBaseX + SLIDE_COMPONENT_SLOT_THICKNESS);
         for(let compIdx = 0; compIdx < numComponents; compIdx++){
-            const compX = startX + compIdx * xNodeSpacing;
-            finalMinX = Math.min(finalMinX, compX - SLIDE_WIDTH_16/2);
-            finalMaxX = Math.max(finalMaxX, compX + SLIDE_WIDTH_16/2);
+            const compY = startY - compIdx * yNodeSpacing;
+            finalMinY = Math.min(finalMinY, compY - SLIDE_DEPTH_9/2);
+            finalMaxY = Math.max(finalMaxY, compY + SLIDE_DEPTH_9/2);
         }
     });
     const calcTotalActualHeight = finalMaxY - finalMinY;
@@ -369,4 +370,4 @@ const PresentationLayoutV5 = ({ setNavigationFunctions }) => {
   );
 };
 
-export default PresentationLayoutV5; 
+export default PresentationLayoutV5;
