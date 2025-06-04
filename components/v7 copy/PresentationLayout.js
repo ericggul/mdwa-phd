@@ -57,10 +57,7 @@ const PresentationLayoutV5 = ({ setNavigationFunctions }) => {
           for (let i = 0; i < numSlidesForThisComponent; i++) {
             const slideId = `${layerIndex}-${componentIndex}-${i}`;
             generatedOrderedSlideIds.push(slideId);
-            const isFirstSlide = i === 0;
-            const slideType = isFirstSlide ? 'title' : 'image';
-            const imagePath = isFirstSlide ? null : `/slides/${component.slides[i - 1]}`;
-            const individualSlideTitle = component.title;
+            const individualSlideTitle = component.title; // Remove "Part X" from title
             const xPos = currentLayerBaseX + SLIDE_COMPONENT_SLOT_THICKNESS / 2;
             const zPos = componentBaseZ - (i * actualIndividualSlideThickness * 1.1); 
             const position = new THREE.Vector3(xPos, componentBaseY, zPos);
@@ -68,8 +65,6 @@ const PresentationLayoutV5 = ({ setNavigationFunctions }) => {
             generatedSlides.push({
               id: slideId,
               title: individualSlideTitle,
-              slideType: slideType,
-              imagePath: imagePath,
               position: position,
               showFrontEdgeTitle: false, 
               individualThickness: actualIndividualSlideThickness,
@@ -86,8 +81,6 @@ const PresentationLayoutV5 = ({ setNavigationFunctions }) => {
           generatedSlides.push({
             id: slideId,
             title: component.title, 
-            slideType: 'title',
-            imagePath: null,
             position: position,
             showFrontEdgeTitle: false,
             individualThickness: actualIndividualSlideThickness,
@@ -330,21 +323,15 @@ const PresentationLayoutV5 = ({ setNavigationFunctions }) => {
           const isActuallySelected = selectedSlideId === slide.id;
           const isVisuallySelected = visuallySelectedSlideId === slide.id;
           let isStrictlyHidden = false;
-          
-          // Improved hiding logic: hide slides that are in front of the selected slide
-          if (slide.isStackedPart && selectedSlideId) {
+          if (slide.isStackedPart && slide.partIndex === 0 && selectedSlideId) {
             const baseCurrentSlideId = getBaseSlideId(slide.id);
             const baseSelectedSlideId = getBaseSlideId(selectedSlideId);
-            
             if (baseCurrentSlideId && baseSelectedSlideId && baseCurrentSlideId === baseSelectedSlideId) {
-              const currentPartIndex = parseInt(slide.id.split('-')[2], 10);
-              const selectedPartIndex = parseInt(selectedSlideId.split('-')[2], 10);
-              
-              // Hide any slide that is in front of (has lower index than) the selected slide
-              if (currentPartIndex < selectedPartIndex) {
-                isStrictlyHidden = true;
-                console.log(`[RenderSlides] STRICTLY HIDING ${slide.id} (part ${currentPartIndex}) because ${selectedSlideId} (part ${selectedPartIndex}) is selected.`);
-              }
+                const selectedPartIndex = parseInt(selectedSlideId.split('-')[2], 10);
+                if (selectedPartIndex === 1) {
+                    isStrictlyHidden = true;
+                    // console.log(`[RenderSlides] STRICTLY HIDING ${slide.id} because ${selectedSlideId} (Part 2) is selected.`);
+                }
             }
           }
           
@@ -368,8 +355,6 @@ const PresentationLayoutV5 = ({ setNavigationFunctions }) => {
               id={slide.id}
               position={slide.position}
               title={slide.title}
-              slideType={slide.slideType}
-              imagePath={slide.imagePath}
               onClick={() => handleSlideClick(slide.id)}
               isSelected={isVisuallySelected}
               showFrontEdgeTitle={slide.showFrontEdgeTitle}
