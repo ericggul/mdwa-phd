@@ -1,0 +1,17 @@
+/* Zoom cursor styles for image slides */
+.zoom-cursor {
+  cursor: zoom-in !important;
+}
+
+.zoom-cursor:active {
+  cursor: grabbing !important;
+}
+
+/* Ensure canvas can show custom cursors */
+canvas {
+  cursor: default;
+}
+
+canvas.zoom-cursor {
+  cursor: zoom-in !important;
+} 

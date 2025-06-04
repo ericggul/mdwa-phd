@@ -1,4 +1,5 @@
 import "@/styles/globals.css";
+import "@/components/v7/styles.css";
 import { ThemeProvider } from 'styled-components';
 import GlobalStyles from '../styles/GlobalStyles';
 import theme from '../styles/theme';

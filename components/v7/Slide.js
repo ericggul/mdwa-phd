@@ -63,8 +63,9 @@ const ImageSlideContent = ({ imagePath, springProps, isStrictlyHidden, id }) => 
   return (
     <a.meshStandardMaterial 
       map={imageTexture}
-      roughness={0.0}
+      roughness={1.0}
       metalness={0.0}
+      color="white"
       transparent={springProps.meshOpacity.get() < 1.0}
       opacity={springProps.meshOpacity}
       side={THREE.FrontSide}
@@ -73,11 +74,25 @@ const ImageSlideContent = ({ imagePath, springProps, isStrictlyHidden, id }) => 
   );
 };
 
-const Slide = ({ id, position, title, slideType, imagePath, onClick, isSelected, showFrontEdgeTitle, individualThickness, animatedOpacity, isStrictlyHidden }) => {
+const Slide = ({ 
+  id, 
+  position, 
+  title, 
+  slideType, 
+  imagePath, 
+  onClick, 
+  onImageClick, 
+  isSelected, 
+  shouldCaptureClicks = true, 
+  showFrontEdgeTitle, 
+  individualThickness, 
+  animatedOpacity, 
+  isStrictlyHidden 
+}) => {
   const meshRef = useRef();
   const [hovered, setHover] = useState(false);
 
-  console.log(`[Slide ${id}] slideType: ${slideType}, imagePath: ${imagePath}`);
+  console.log(`[Slide ${id}] slideType: ${slideType}, imagePath: ${imagePath}, shouldCaptureClicks: ${shouldCaptureClicks}`);
 
   const springProps = useSpring({
     scale: hovered && !isSelected ? 1.05 : 1,
@@ -95,24 +110,63 @@ const Slide = ({ id, position, title, slideType, imagePath, onClick, isSelected,
 
   const adjustedBoxArgs = [SLIDE_WIDTH_16, SLIDE_DEPTH_9, individualThickness];
 
+  const handleClick = (event) => {
+    event.stopPropagation();
+    
+    // Only handle clicks if this slide should capture them
+    if (!shouldCaptureClicks) {
+      console.log(`[Slide ${id}] Click ignored - shouldCaptureClicks is false`);
+      return;
+    }
+    
+    if (slideType === 'image' && imagePath && onImageClick) {
+      // For image slides, call the image click handler
+      onImageClick(imagePath);
+    } else {
+      // For other slides, use the regular click handler
+      onClick();
+    }
+  };
+
+  const handlePointerOver = (event) => {
+    event.stopPropagation();
+    if (!isSelected) setHover(true);
+    
+    // Only show special cursors if this slide captures clicks
+    if (shouldCaptureClicks) {
+      const canvas = event.target?.domElement || document.querySelector('canvas');
+      if (canvas) {
+        if (slideType === 'image' && imagePath) {
+          canvas.style.cursor = 'zoom-in';
+          canvas.classList.add('zoom-cursor');
+        } else {
+          canvas.style.cursor = hovered ? 'pointer' : 'default';
+          canvas.classList.remove('zoom-cursor');
+        }
+      }
+    }
+  };
+
+  const handlePointerOut = (event) => {
+    event.stopPropagation();
+    setHover(false);
+    // Reset cursor style
+    const canvas = event.target?.domElement || document.querySelector('canvas');
+    if (canvas) {
+      canvas.style.cursor = 'default';
+      canvas.classList.remove('zoom-cursor');
+    }
+  };
+
   return (
     <a.mesh
       ref={meshRef}
       position={position}
       scale={springProps.scale}
       visible={!isStrictlyHidden && springProps.meshOpacity.get() > 0.01} // Apply strict hide and opacity-based visibility
-      onClick={(event) => {
-        event.stopPropagation();
-        onClick();
-      }}
-      onPointerOver={(event) => {
-        event.stopPropagation();
-        if (!isSelected) setHover(true);
-      }}
-      onPointerOut={(event) => {
-        event.stopPropagation();
-        setHover(false);
-      }}
+      onClick={shouldCaptureClicks ? handleClick : undefined}
+      onPointerOver={shouldCaptureClicks ? handlePointerOver : undefined}
+      onPointerOut={shouldCaptureClicks ? handlePointerOut : undefined}
     >
 
       <boxGeometry args={adjustedBoxArgs} />

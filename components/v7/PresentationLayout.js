@@ -14,7 +14,7 @@ import {
   SLIDE_COMPONENT_SLOT_THICKNESS 
 } from './constants';
 
-const PresentationLayoutV5 = ({ setNavigationFunctions }) => {
+const PresentationLayoutV5 = ({ setNavigationFunctions, onImageClick }) => {
   const [selectedSlideId, setSelectedSlideId] = useState(null);
   const [currentNavigatedIndex, setCurrentNavigatedIndex] = useState(-1);
   const [visuallySelectedSlideId, setVisuallySelectedSlideId] = useState(null);
@@ -306,6 +306,7 @@ const PresentationLayoutV5 = ({ setNavigationFunctions }) => {
     if (index !== -1) goToSlideByIndex(index); 
     else { /* console.warn(`[SlideClick] Slide ID ${slideId} not found.`); */ goToOverview(); } 
   };
+
   const handleGoToOverview = () => {
     // console.log("[ClickOutsidePlane] Clicked! Calling goToOverview.");
     goToOverview();
@@ -347,6 +348,26 @@ const PresentationLayoutV5 = ({ setNavigationFunctions }) => {
               }
             }
           }
+
+          // Smart click capture logic: determine if this slide should capture clicks
+          let shouldCaptureClicks = true;
+          
+          if (slide.slideType === 'title' && slide.isStackedPart && selectedSlideId) {
+            const baseCurrentSlideId = getBaseSlideId(slide.id);
+            const baseSelectedSlideId = getBaseSlideId(selectedSlideId);
+            
+            // If this title slide is in the same stack as the selected slide
+            if (baseCurrentSlideId && baseSelectedSlideId && baseCurrentSlideId === baseSelectedSlideId) {
+              const currentPartIndex = parseInt(slide.id.split('-')[2], 10);
+              const selectedPartIndex = parseInt(selectedSlideId.split('-')[2], 10);
+              
+              // If an image slide behind this title slide is selected, this title slide should not capture clicks
+              if (currentPartIndex < selectedPartIndex) {
+                shouldCaptureClicks = false;
+                console.log(`[ClickCapture] Title slide ${slide.id} will NOT capture clicks because image slide ${selectedSlideId} is selected behind it.`);
+              }
+            }
+          }
           
           // console.log(`[RenderSlides] Slide: ${slide.id}, isSelected: ${isActuallySelected}, isStrictlyHidden: ${isStrictlyHidden}, isFlyingOver: ${isFlyingOver}, dimmingOpacity: ${dimmingSpring.opacity.get()}`);
 
@@ -371,7 +392,9 @@ const PresentationLayoutV5 = ({ setNavigationFunctions }) => {
               slideType={slide.slideType}
               imagePath={slide.imagePath}
               onClick={() => handleSlideClick(slide.id)}
+              onImageClick={onImageClick}
               isSelected={isVisuallySelected}
+              shouldCaptureClicks={shouldCaptureClicks}
               showFrontEdgeTitle={slide.showFrontEdgeTitle}
               animatedOpacity={currentAnimatedOpacity}
               individualThickness={slide.individualThickness}
