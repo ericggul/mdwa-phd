@@ -22,10 +22,8 @@ const ImageSlideContent = ({ imagePath, springProps, isStrictlyHidden, id }) => 
   } catch (error) {
     console.error(`[ImageSlideContent ${id}] useLoader failed:`, error);
     return (
-      <a.meshStandardMaterial 
+      <a.meshBasicMaterial 
         color="red"
-        roughness={0.5}
-        metalness={0.0}
         transparent
         opacity={springProps.meshOpacity}
       />
@@ -34,37 +32,51 @@ const ImageSlideContent = ({ imagePath, springProps, isStrictlyHidden, id }) => 
   
   useEffect(() => {
     if (imageTexture) {
+      // Log original texture properties for debugging
+      console.log(`[TEXTURE QUALITY ${id}] Original size: ${imageTexture.image?.width}x${imageTexture.image?.height}`);
+      console.log(`[TEXTURE QUALITY ${id}] Format: ${imageTexture.format}, Type: ${imageTexture.type}`);
+      
+      // Optimize texture settings for maximum quality
       imageTexture.flipY = true;
       imageTexture.wrapS = THREE.ClampToEdgeWrapping;
       imageTexture.wrapT = THREE.ClampToEdgeWrapping;
+      
+      // Use highest quality filtering
       imageTexture.magFilter = THREE.LinearFilter;
       imageTexture.minFilter = THREE.LinearMipmapLinearFilter;
+      
+      // Ensure proper color space
       imageTexture.colorSpace = THREE.SRGBColorSpace;
+      
+      // Prevent texture compression/downsampling
+      imageTexture.generateMipmaps = true;
+      imageTexture.premultiplyAlpha = false;
+      
+      // Force texture update
+      imageTexture.needsUpdate = true;
+      
+      console.log(`[TEXTURE QUALITY ${id}] Applied settings - ColorSpace: ${imageTexture.colorSpace}, MagFilter: ${imageTexture.magFilter}, MinFilter: ${imageTexture.minFilter}`);
     }
   }, [imageTexture, imagePath, id]);
 
   if (!imageTexture) {
     return (
-      <a.meshStandardMaterial 
+      <a.meshBasicMaterial 
         color="grey"
-        roughness={0.8}
-        metalness={0.0}
         transparent
         opacity={springProps.meshOpacity}
       />
     );
   }
 
+  // Use meshBasicMaterial for unlit, pure image display (like img tag)
   return (
-    <a.meshStandardMaterial 
+    <a.meshBasicMaterial 
       map={imageTexture}
-      roughness={1.0}
-      metalness={0.0}
-      color="white"
       transparent={springProps.meshOpacity.get() < 1.0}
       opacity={springProps.meshOpacity}
       side={THREE.FrontSide}
-      envMapIntensity={0}
+      toneMapped={false}
     />
   );
 };
@@ -164,11 +176,10 @@ const Slide = ({
       <boxGeometry args={adjustedBoxArgs} />
       {slideType === 'image' && imagePath ? (
         <Suspense fallback={
-          <a.meshStandardMaterial 
+          <a.meshBasicMaterial 
             color="gray"
             transparent
             opacity={springProps.meshOpacity}
-            depthWrite={!isStrictlyHidden && springProps.meshOpacity.get() < 1 ? false : true}
           />
         }>
           <ImageSlideContent 
@@ -179,14 +190,10 @@ const Slide = ({
           />
         </Suspense>
       ) : (
-        <a.meshStandardMaterial 
+        <a.meshBasicMaterial 
           color={isSelected ? 'lightgreen' : hovered ? 'skyblue' : '#fff'} 
-          roughness={0.2} 
-          metalness={0.3} 
-          envMapIntensity={0.1}
           transparent
           opacity={springProps.meshOpacity}
-          depthWrite={!isStrictlyHidden && springProps.meshOpacity.get() < 1 ? false : true}
         />
       )}
       
