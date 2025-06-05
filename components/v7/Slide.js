@@ -15,13 +15,10 @@ const AnimatedDreiText = a(Text);
 const ImageSlideContent = ({ imagePath, springProps, isStrictlyHidden, id }) => {
   // Properly encode the path to handle spaces and special characters
   const encodedPath = imagePath.replace(/ /g, '%20');
-  console.log(`[ImageSlideContent ${id}] Original path: ${imagePath}`);
-  console.log(`[ImageSlideContent ${id}] Encoded path: ${encodedPath}`);
   
   let imageTexture;
   try {
     imageTexture = useLoader(THREE.TextureLoader, encodedPath);
-    console.log(`[ImageSlideContent ${id}] useLoader succeeded, texture:`, imageTexture);
   } catch (error) {
     console.error(`[ImageSlideContent ${id}] useLoader failed:`, error);
     return (
@@ -43,12 +40,10 @@ const ImageSlideContent = ({ imagePath, springProps, isStrictlyHidden, id }) => 
       imageTexture.magFilter = THREE.LinearFilter;
       imageTexture.minFilter = THREE.LinearMipmapLinearFilter;
       imageTexture.colorSpace = THREE.SRGBColorSpace;
-      console.log(`[Slide ${id}] Successfully configured texture: ${imagePath}`, imageTexture);
     }
   }, [imageTexture, imagePath, id]);
 
   if (!imageTexture) {
-    console.log(`[ImageSlideContent ${id}] Loading texture...`);
     return (
       <a.meshStandardMaterial 
         color="grey"
@@ -92,20 +87,18 @@ const Slide = ({
   const meshRef = useRef();
   const [hovered, setHover] = useState(false);
 
-  console.log(`[Slide ${id}] slideType: ${slideType}, imagePath: ${imagePath}, shouldCaptureClicks: ${shouldCaptureClicks}`);
-
   const springProps = useSpring({
     scale: hovered && !isSelected ? 1.05 : 1,
     meshOpacity: animatedOpacity,
     textOpacity: animatedOpacity,
     config: SPRING_CONFIG_NORMAL,
     onRest: () => {
-      // console.log(`[Slide ${id}] Spring onRest. meshOpacity is now: ${springProps.meshOpacity.get()}`);
+      // Spring animation completed
     }
   });
   
   useEffect(() => {
-    // console.log(`[Slide ${id}] springProps.meshOpacity updated: ${springProps.meshOpacity.get()}, isStrictlyHidden: ${isStrictlyHidden}`);
+    // Handle opacity updates
   }, [springProps.meshOpacity, id, isStrictlyHidden]);
 
   const adjustedBoxArgs = [SLIDE_WIDTH_16, SLIDE_DEPTH_9, individualThickness];
@@ -115,13 +108,12 @@ const Slide = ({
     
     // Only handle clicks if this slide should capture them
     if (!shouldCaptureClicks) {
-      console.log(`[Slide ${id}] Click ignored - shouldCaptureClicks is false`);
       return;
     }
     
     if (slideType === 'image' && imagePath && onImageClick) {
-      // For image slides, call the image click handler
-      onImageClick(imagePath);
+      // For image slides, call the image click handler (imagePath is already bound)
+      onImageClick();
     } else {
       // For other slides, use the regular click handler
       onClick();
@@ -164,9 +156,9 @@ const Slide = ({
       position={position}
       scale={springProps.scale}
       visible={!isStrictlyHidden && springProps.meshOpacity.get() > 0.01} // Apply strict hide and opacity-based visibility
-      onClick={shouldCaptureClicks ? handleClick : undefined}
-      onPointerOver={shouldCaptureClicks ? handlePointerOver : undefined}
-      onPointerOut={shouldCaptureClicks ? handlePointerOut : undefined}
+      onClick={shouldCaptureClicks && !isStrictlyHidden ? handleClick : undefined}
+      onPointerOver={shouldCaptureClicks && !isStrictlyHidden ? handlePointerOver : undefined}
+      onPointerOut={shouldCaptureClicks && !isStrictlyHidden ? handlePointerOut : undefined}
     >
 
       <boxGeometry args={adjustedBoxArgs} />

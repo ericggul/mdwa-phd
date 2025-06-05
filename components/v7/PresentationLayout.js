@@ -31,7 +31,6 @@ const PresentationLayoutV5 = ({ setNavigationFunctions, onImageClick }) => {
   }));
 
   const { slides, totalActualHeight, totalActualWidth, orderedSlideIds, initialLookAt, initialCameraPosition } = React.useMemo(() => {
-    // console.log("[Layout] Recalculating slides geometry...");
     const generatedSlides = [];
     const generatedOrderedSlideIds = [];
     const xLayerSpacing = SLIDE_WIDTH_16 * 1.1; // Horizontal spacing between layers
@@ -46,7 +45,7 @@ const PresentationLayoutV5 = ({ setNavigationFunctions, onImageClick }) => {
       const currentLayerBaseX = layerIndex * xLayerSpacing;
       minXOverall = Math.min(minXOverall, currentLayerBaseX);
       maxXOverall = Math.max(maxXOverall, currentLayerBaseX + SLIDE_COMPONENT_SLOT_THICKNESS);
-
+      
       layer.components.forEach((component, componentIndex) => {
         const componentBaseY = startY - componentIndex * yNodeSpacing;
         const componentBaseZ = 0; 
@@ -60,11 +59,11 @@ const PresentationLayoutV5 = ({ setNavigationFunctions, onImageClick }) => {
             const isFirstSlide = i === 0;
             const slideType = isFirstSlide ? 'title' : 'image';
             const imagePath = isFirstSlide ? null : `/slides/${component.slides[i - 1]}`;
+            
             const individualSlideTitle = component.title;
             const xPos = currentLayerBaseX + SLIDE_COMPONENT_SLOT_THICKNESS / 2;
             const zPos = componentBaseZ - (i * actualIndividualSlideThickness * 1.1); 
             const position = new THREE.Vector3(xPos, componentBaseY, zPos);
-            // console.log(`[Layout] Stacked Slide: ${slideId}, Position: {x: ${position.x.toFixed(2)}, y: ${position.y.toFixed(2)}, z: ${position.z.toFixed(2)}}`);
             generatedSlides.push({
               id: slideId,
               title: individualSlideTitle,
@@ -82,7 +81,6 @@ const PresentationLayoutV5 = ({ setNavigationFunctions, onImageClick }) => {
           generatedOrderedSlideIds.push(slideId);
           const xPos = currentLayerBaseX + SLIDE_COMPONENT_SLOT_THICKNESS / 2;
           const position = new THREE.Vector3(xPos, componentBaseY, componentBaseZ);
-          // console.log(`[Layout] Single Slide: ${slideId}, Position: {x: ${position.x.toFixed(2)}, y: ${position.y.toFixed(2)}, z: ${position.z.toFixed(2)}}`);
           generatedSlides.push({
             id: slideId,
             title: component.title, 
@@ -99,7 +97,7 @@ const PresentationLayoutV5 = ({ setNavigationFunctions, onImageClick }) => {
         maxYOverall = Math.max(maxYOverall, componentBaseY + SLIDE_DEPTH_9 / 2);
       });
     });
-    
+
     const structureCenterX = (minXOverall + maxXOverall) / 2;
     const structureCenterY = (minYOverall + maxYOverall) / 2; 
     generatedSlides.forEach(s => { s.position.x -= structureCenterX; s.position.y -= structureCenterY; });
@@ -392,7 +390,9 @@ const PresentationLayoutV5 = ({ setNavigationFunctions, onImageClick }) => {
               slideType={slide.slideType}
               imagePath={slide.imagePath}
               onClick={() => handleSlideClick(slide.id)}
-              onImageClick={onImageClick}
+              onImageClick={() => {
+                onImageClick(slide.imagePath);
+              }}
               isSelected={isVisuallySelected}
               shouldCaptureClicks={shouldCaptureClicks}
               showFrontEdgeTitle={slide.showFrontEdgeTitle}

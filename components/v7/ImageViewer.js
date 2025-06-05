@@ -8,8 +8,6 @@ const ImageViewer = ({ isOpen, imagePath, onClose }) => {
 
   useEffect(() => {
     if (isOpen) {
-      setZoomLevel(1);
-      setPosition({ x: 0, y: 0 });
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'auto';
@@ -18,7 +16,7 @@ const ImageViewer = ({ isOpen, imagePath, onClose }) => {
     return () => {
       document.body.style.overflow = 'auto';
     };
-  }, [isOpen]);
+  }, [isOpen, imagePath]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -35,6 +33,15 @@ const ImageViewer = ({ isOpen, imagePath, onClose }) => {
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [isOpen, onClose]);
+
+  useEffect(() => {
+    if (imagePath) {
+      // Reset state when image changes
+      setZoomLevel(1);
+      setPosition({ x: 0, y: 0 });
+      setIsDragging(false);
+    }
+  }, [imagePath]);
 
   const handleWheel = (e) => {
     e.preventDefault();
@@ -197,6 +204,7 @@ const ImageViewer = ({ isOpen, imagePath, onClose }) => {
 
       {/* Image */}
       <img
+        key={imagePath}
         src={imagePath}
         alt="Enlarged view"
         style={{
