@@ -45,7 +45,7 @@ const PresentationLayoutV5 = ({ setNavigationFunctions, onImageClick }) => {
       const currentLayerBaseX = layerIndex * xLayerSpacing;
       minXOverall = Math.min(minXOverall, currentLayerBaseX);
       maxXOverall = Math.max(maxXOverall, currentLayerBaseX + SLIDE_COMPONENT_SLOT_THICKNESS);
-      
+
       layer.components.forEach((component, componentIndex) => {
         const componentBaseY = startY - componentIndex * yNodeSpacing;
         const componentBaseZ = 0; 
@@ -58,9 +58,11 @@ const PresentationLayoutV5 = ({ setNavigationFunctions, onImageClick }) => {
             generatedOrderedSlideIds.push(slideId);
             const isFirstSlide = i === 0;
             const slideType = isFirstSlide ? 'title' : 'image';
-            const imagePath = isFirstSlide ? null : `/slides/${component.slides[i - 1]}`;
+            const slideData = isFirstSlide ? null : component.slides[i - 1];
+            const imagePath = isFirstSlide ? null : `/slides/${slideData?.image}`;
+            const slideTitle = isFirstSlide ? component.title : slideData?.title;
             
-            const individualSlideTitle = component.title;
+            const individualSlideTitle = slideTitle;
             const xPos = currentLayerBaseX + SLIDE_COMPONENT_SLOT_THICKNESS / 2;
             const zPos = componentBaseZ - (i * actualIndividualSlideThickness * 1.1); 
             const position = new THREE.Vector3(xPos, componentBaseY, zPos);
@@ -97,7 +99,7 @@ const PresentationLayoutV5 = ({ setNavigationFunctions, onImageClick }) => {
         maxYOverall = Math.max(maxYOverall, componentBaseY + SLIDE_DEPTH_9 / 2);
       });
     });
-
+    
     const structureCenterX = (minXOverall + maxXOverall) / 2;
     const structureCenterY = (minYOverall + maxYOverall) / 2; 
     generatedSlides.forEach(s => { s.position.x -= structureCenterX; s.position.y -= structureCenterY; });
@@ -265,8 +267,38 @@ const PresentationLayoutV5 = ({ setNavigationFunctions, onImageClick }) => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [goToNextSlide, goToPrevSlide, goToOverview]);
 
-  useEffect(() => { if (setNavigationFunctions) setNavigationFunctions({ onPrev: goToPrevSlide, onNext: goToNextSlide, onOverview: goToOverview, currentIndex: currentNavigatedIndex, totalSlides: orderedSlideIds.length });
-  }, [setNavigationFunctions, goToPrevSlide, goToNextSlide, goToOverview, currentNavigatedIndex, orderedSlideIds.length]);
+  useEffect(() => { 
+    // Get current slide details for navigation display
+    const currentSlide = currentNavigatedIndex >= 0 && currentNavigatedIndex < orderedSlideIds.length 
+      ? slides.find(s => s.id === orderedSlideIds[currentNavigatedIndex]) 
+      : null;
+    
+    // Get component info from the slide ID
+    let componentTitle = null;
+    if (currentSlide) {
+      const parts = currentSlide.id.split('-');
+      if (parts.length >= 2) {
+        const layerIndex = parseInt(parts[0], 10);
+        const componentIndex = parseInt(parts[1], 10);
+        if (STRUCTURE[layerIndex]?.components[componentIndex]) {
+          componentTitle = STRUCTURE[layerIndex].components[componentIndex].title;
+        }
+      }
+    }
+    
+         if (setNavigationFunctions) {
+       setNavigationFunctions({ 
+         onPrev: goToPrevSlide, 
+         onNext: goToNextSlide, 
+         onOverview: goToOverview, 
+         currentIndex: currentNavigatedIndex, 
+         totalSlides: orderedSlideIds.length,
+         currentSlideTitle: currentSlide?.title,
+         currentComponentTitle: componentTitle,
+         currentSlideType: currentSlide?.slideType
+       });
+     }
+  }, [setNavigationFunctions, goToPrevSlide, goToNextSlide, goToOverview, currentNavigatedIndex, orderedSlideIds.length, slides]);
 
   useFrame(() => {
     const localSelectedSlideId = selectedSlideId;
@@ -337,11 +369,11 @@ const PresentationLayoutV5 = ({ setNavigationFunctions, onImageClick }) => {
             
             if (baseCurrentSlideId && baseSelectedSlideId && baseCurrentSlideId === baseSelectedSlideId) {
               const currentPartIndex = parseInt(slide.id.split('-')[2], 10);
-              const selectedPartIndex = parseInt(selectedSlideId.split('-')[2], 10);
+                const selectedPartIndex = parseInt(selectedSlideId.split('-')[2], 10);
               
               // Hide any slide that is in front of (has lower index than) the selected slide
               if (currentPartIndex < selectedPartIndex) {
-                isStrictlyHidden = true;
+                    isStrictlyHidden = true;
                 console.log(`[RenderSlides] STRICTLY HIDING ${slide.id} (part ${currentPartIndex}) because ${selectedSlideId} (part ${selectedPartIndex}) is selected.`);
               }
             }
@@ -363,7 +395,7 @@ const PresentationLayoutV5 = ({ setNavigationFunctions, onImageClick }) => {
               if (currentPartIndex < selectedPartIndex) {
                 shouldCaptureClicks = false;
                 console.log(`[ClickCapture] Title slide ${slide.id} will NOT capture clicks because image slide ${selectedSlideId} is selected behind it.`);
-              }
+                }
             }
           }
           

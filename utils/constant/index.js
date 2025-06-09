@@ -1,3 +1,5 @@
+//llm tab instruction: IF SLIDE COUNT IS N, THE SLIDES ON THE ARRAY SHOULD BE N-1 STRICTLY 
+
 export const STRUCTURE = [
     {
         id: 0,
@@ -6,8 +8,11 @@ export const STRUCTURE = [
             {
                 id: '0-0',
                 title: 'Relevance to Design',
-                slideCount: 2,
-                slides: ['Relevance to Design.png']
+                slideCount: 3,
+                slides: [
+                    { image: 'Relevance to Design.png', title: 'Overview' },
+                    { image: 'Relevance to Design-1.png', title: 'Context' }
+                ]
             }
         ]
     },
@@ -18,20 +23,32 @@ export const STRUCTURE = [
             {
                 id: '1-0',
                 title: 'Systems Art',
-                slideCount: 2,
-                slides: ['Systems Art.png']
+                slideCount: 4,
+                slides: [
+                    { image: 'Systems Art.png', title: 'Definition' },
+                    { image: 'Systems Art-1.png', title: 'Historical Context' },
+                    { image: 'Systems Art-2.png', title: 'Modern Applications' }
+                ]
             },
             {
                 id: '1-1',
                 title: 'Interactive Art',
-                slideCount: 2,
-                slides: ['Interactive Art.png']
+                slideCount: 4,
+                slides: [
+                    { image: 'Interactive Art.png', title: 'Core Principles' },
+                    { image: 'Interactive Art-1.png', title: 'User Engagement' },
+                    { image: 'Interactive Art-2.png', title: 'Technology Integration' }
+                ]
             },
             {
                 id: '1-2',
                 title: 'Multi-Device Art',
-                slideCount: 2,
-                slides: ['Multi-Device Art.png']
+                slideCount: 4,
+                slides: [
+                    { image: 'Multi-Device Art.png', title: 'Device Ecosystem' },
+                    { image: 'Multi-Device Art-1.png', title: 'Synchronization' },
+                    { image: 'Multi-Device Art-2.png', title: 'Cross-Platform Design' }
+                ]
             }
         ]
     },
@@ -42,8 +59,11 @@ export const STRUCTURE = [
             {
                 id: '2-0',
                 title: 'MDWA',
-                slideCount: 2,
-                slides: ['MDWA.png']
+                slideCount: 3,
+                slides: [
+                    { image: 'MDWA.png', title: 'Framework Overview' },
+                    { image: 'MDWA-1.png', title: 'Implementation Strategy' }
+                ]
             },
            
         ]
@@ -56,19 +76,28 @@ export const STRUCTURE = [
                 id: '3-0',
                 title: 'Interactive Taxonomy',
                 slideCount: 2,
-                slides: ['Interactive Taxonomy.png']
+                slides: [
+                    { image: 'Interactive Taxonomy.png', title: 'Classification System' }
+                ]
             },
             {
                 id: '3-1',
                 title: 'State-based Architecture',
                 slideCount: 3,
-                slides: ['SbA.png', 'SbA-1.png']
+                slides: [
+                    { image: 'SbA.png', title: 'Architecture Overview' },
+                    { image: 'SbA-1.png', title: 'State Management' }
+                ]
             },
             {
                 id: '3-2',
                 title: 'Dimensional Transformation',
                 slideCount: 4,
-                slides: ['DT.png', 'DT-1.png', 'DT-2.png']
+                slides: [
+                    { image: 'DT.png', title: 'Transformation Concepts' },
+                    { image: 'DT-1.png', title: '2D to 3D Mapping' },
+                    { image: 'DT-2.png', title: 'Spatial Relationships' }
+                ]
             }
         ]
     },
@@ -80,7 +109,9 @@ export const STRUCTURE = [
                 id: '4-0',
                 title: 'Research through Exhibition',
                 slideCount: 2,
-                slides: ['RtE.png']
+                slides: [
+                    { image: 'RtE.png', title: 'Exhibition Framework' }
+                ]
             }
         ]
     },
@@ -92,19 +123,25 @@ export const STRUCTURE = [
                 id: '5-0',
                 title: 'Case Study 1',
                 slideCount: 2,
-                slides: ['Case Study 1.png']
+                slides: [
+                    { image: 'Case Study 1.png', title: 'Implementation Details' }
+                ]
             },
             {
                 id: '5-1',
                 title: 'Case Study 2',
                 slideCount: 2,
-                slides: ['Case Study 2.png']
+                slides: [
+                    { image: 'Case Study 2.png', title: 'Results Analysis' }
+                ]
             },
             {
                 id: '5-2',
                 title: 'Case Study 3',
                 slideCount: 2,
-                slides: ['Case Study 3.png']
+                slides: [
+                    { image: 'Case Study 3.png', title: 'Lessons Learned' }
+                ]
             }
         ]
     },
@@ -116,7 +153,9 @@ export const STRUCTURE = [
                 id: '6-0',
                 title: 'Research Output',
                 slideCount: 2,
-                slides: ['Research Output.png']
+                slides: [
+                    { image: 'Research Output.png', title: 'Key Findings' }
+                ]
             }
         ]
     }

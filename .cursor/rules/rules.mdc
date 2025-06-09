@@ -6,7 +6,7 @@ alwaysApply: true
 
 Always use Javascript (not typescript), pnpm (not yarn/npm)
 Do not edit/install package without explicit request
-Do not start the dev server on your own --- NEVER pmpm dev on your own
+Do not start the dev server on your own --- NEVER pmpm dev on your own. Never test the implementation by running development server on your own.
 Do not use git commands unless mentioned
 
 Do not overspeculate my request

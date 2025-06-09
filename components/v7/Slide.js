@@ -191,14 +191,15 @@ const Slide = ({
         </Suspense>
       ) : (
         <a.meshBasicMaterial 
-          color={isSelected ? 'lightgreen' : hovered ? 'skyblue' : '#fff'} 
-          transparent
-          opacity={springProps.meshOpacity}
-        />
+        color={isSelected ? 'lightgreen' : hovered ? 'skyblue' : '#fff'} 
+        transparent
+        opacity={springProps.meshOpacity}
+      />
       )}
       
       {slideType === 'title' && (
         <AnimatedDreiText
+          font="/fonts/EBGaramond-VariableFont_wght.ttf"
           position={[0, 0, individualThickness / 2 + 0.02]}
           fontSize={1.5}
           color="black"

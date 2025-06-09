@@ -6,25 +6,32 @@ const NavContainer = styled.div`
   bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
-  background-color: rgba(0, 0, 0, 0.5);
-  padding: 10px 20px;
-  border-radius: 8px;
+  background-color: rgba(0, 0, 0, 0.7);
+  padding: 12px 20px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   gap: 15px;
   color: white;
-  font-family: Arial, sans-serif;
+  // font-family: EB Garamond;
+  max-width: 90vw;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 `;
 
 const NavButton = styled.button`
   background-color: #444;
   color: white;
   border: none;
-  padding: 8px 15px;
-  border-radius: 5px;
+  padding: 10px 12px;
+  border-radius: 50%;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 16px;
   transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
 
   &:hover {
     background-color: #666;
@@ -37,10 +44,36 @@ const NavButton = styled.button`
   }
 `;
 
-const NavInfo = styled.span`
-  font-size: 14px;
-  min-width: 80px; /* To prevent layout shifts */
+const NavInfo = styled.div`
+  font-size: 16px;
+  min-width: 200px; /* Increased width for longer titles */
   text-align: center;
+  line-height: 1.3;
+  
+  .top-line {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 2px;
+  }
+  
+  .slide-counter {
+    font-size: 14px;
+    color: #aaa;
+  }
+  
+  .component-title {
+    font-weight: normal;
+    color: #aaa;
+    font-size: 14px;
+  }
+  
+  .slide-title {
+    font-weight: semi-bold;
+    color: #fff;
+    font-size: 16px;
+  }
 `;
 
 const NavigationUI = ({
@@ -48,24 +81,56 @@ const NavigationUI = ({
   onNext,
   onOverview,
   currentIndex, // -1 for overview, 0 to N-1 for slides
-  totalSlides
+  totalSlides,
+  currentSlideTitle,
+  currentComponentTitle,
+  currentSlideType
 }) => {
   const isOverview = currentIndex === -1;
-  const currentSlideDisplay = isOverview ? 'Overview' : `Slide ${currentIndex + 1}`;
+  const isTitleSlide = currentSlideType === 'title';
 
   return (
     <NavContainer>
-      <NavButton onClick={onPrev}>
-        Prev
+      <NavButton onClick={onPrev} title="Previous slide">
+        ←
       </NavButton>
       <NavInfo>
-        {currentSlideDisplay} / {totalSlides}
+        {isOverview ? (
+          <div>Overview</div>
+        ) : isTitleSlide ? (
+          // For title slides, just show the component title (no slide count)
+          <div className="component-title">
+            {currentComponentTitle}
+          </div>
+        ) : (
+          // For content slides, show slide count + component title + slide title
+          <>
+            <div className="top-line">
+              <span className="slide-counter">
+                Slide {currentIndex + 1} / {totalSlides}
+              </span>
+              {currentComponentTitle && (
+                <>
+                  <span>•</span>
+                  <span className="component-title">
+                    {currentComponentTitle}
+                  </span>
+                </>
+              )}
+            </div>
+            {currentSlideTitle && currentSlideTitle !== currentComponentTitle && (
+              <div className="slide-title">
+                {currentSlideTitle}
+              </div>
+            )}
+          </>
+        )}
       </NavInfo>
-      <NavButton onClick={onNext}>
-        Next
+      <NavButton onClick={onNext} title="Next slide">
+        →
       </NavButton>
-      <NavButton onClick={onOverview} disabled={isOverview}>
-        Overview
+      <NavButton onClick={onOverview} disabled={isOverview} title="Close/Exit to Overview">
+        ×
       </NavButton>
     </NavContainer>
   );
