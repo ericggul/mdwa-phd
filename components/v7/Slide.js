@@ -200,7 +200,7 @@ const Slide = ({
       {slideType === 'title' && (
         <AnimatedDreiText
           font="/fonts/EBGaramond-VariableFont_wght.ttf"
-          position={[0, 0, individualThickness / 2 + 0.02]}
+          position={[0, 0, individualThickness / 2 + 0.1]}
           fontSize={1.5}
           color="black"
           anchorX="center"
