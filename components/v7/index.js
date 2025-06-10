@@ -23,7 +23,7 @@ const InteractivePresentationV5 = () => {
 
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative' }}>
-      <Canvas camera={{ fov: 40 }} style={{ width: '100%', height: '100%' }} onCreated={({ gl }) => { gl.setClearColor(new THREE.Color('#1a1a1f')); }}>
+      <Canvas camera={{ fov: 45 }} style={{ width: '100%', height: '100%' }} onCreated={({ gl }) => { gl.setClearColor(new THREE.Color('#1a1a1f')); }}>
         <PresentationLayoutV5 setNavigationFunctions={setNavFunctions} onImageClick={handleImageClick} />
       </Canvas>
       <NavigationUI {...navFunctions} />
