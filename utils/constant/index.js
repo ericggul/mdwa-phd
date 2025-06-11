@@ -43,11 +43,12 @@ export const STRUCTURE = [
             {
                 id: '1-2',
                 title: 'Multi-Device Art',
-                slideCount: 4,
+                slideCount: 5,
                 slides: [
                     { image: 'Multi-Device Art.png', title: 'Device Ecosystem' },
                     { image: 'Multi-Device Art-1.png', title: 'Synchronization' },
-                    { image: 'Multi-Device Art-2.png', title: 'Cross-Platform Design' }
+                    { image: 'Multi-Device Art-2.png', title: 'Cross-Platform Design' },
+                    { image: 'Multi-Device Art-3.png', title: 'Analysis of Multi-Device Artworks' }
                 ]
             }
         ]
@@ -59,10 +60,12 @@ export const STRUCTURE = [
             {
                 id: '2-0',
                 title: 'MDWA',
-                slideCount: 3,
+                slideCount: 5,
                 slides: [
                     { image: 'MDWA.png', title: 'Framework Overview' },
-                    { image: 'MDWA-1.png', title: 'Implementation Strategy' }
+                    { image: 'MDWA-3.png', title: 'Implementation Strategy' },
+                    { image: 'MDWA-1.png', title: 'Analysis of MDWA' },
+                    { image: 'MDWA-2.png', title: 'Analysis of MDWA' }
                 ]
             },
            
