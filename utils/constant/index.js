@@ -10,8 +10,8 @@ export const STRUCTURE = [
                 title: 'Relevance to Design',
                 slideCount: 3,
                 slides: [
-                    { image: 'Relevance to Design.png', title: 'Overview' },
-                    { image: 'Relevance to Design-1.png', title: 'Context' }
+                    { image: 'Relevance to Design.png', title: 'Art vs. Design' },
+                    { image: 'Relevance to Design-1.png', title: 'Interactive Art: Art + Design' }
                 ]
             }
         ]
@@ -25,9 +25,9 @@ export const STRUCTURE = [
                 title: 'Systems Art',
                 slideCount: 4,
                 slides: [
-                    { image: 'Systems Art.png', title: 'Definition' },
-                    { image: 'Systems Art-1.png', title: 'Historical Context' },
-                    { image: 'Systems Art-2.png', title: 'Modern Applications' }
+                    { image: 'Systems Art 1.png', title: 'Why Systems Art?' },
+                    { image: 'Systems Art 2.png', title: 'References' },
+                    { image: 'Systems Art 3.png', title: 'Limitations' }
                 ]
             },
             {
@@ -35,9 +35,9 @@ export const STRUCTURE = [
                 title: 'Interactive Art',
                 slideCount: 4,
                 slides: [
-                    { image: 'Interactive Art.png', title: 'Core Principles' },
-                    { image: 'Interactive Art-1.png', title: 'User Engagement' },
-                    { image: 'Interactive Art-2.png', title: 'Technology Integration' }
+                    { image: 'Interactive Art 1.png', title: 'Why Computational Interactive Art?' },
+                    { image: 'Interactive Art 2.png', title: 'References' },
+                    { image: 'Interactive Art 3.png', title: 'Limitations' }
                 ]
             },
             {
@@ -45,10 +45,10 @@ export const STRUCTURE = [
                 title: 'Multi-Device Art',
                 slideCount: 5,
                 slides: [
-                    { image: 'Multi-Device Art.png', title: 'Device Ecosystem' },
-                    { image: 'Multi-Device Art-1.png', title: 'Synchronization' },
-                    { image: 'Multi-Device Art-2.png', title: 'Cross-Platform Design' },
-                    { image: 'Multi-Device Art-3.png', title: 'Analysis of Multi-Device Artworks' }
+                    { image: 'Multi-Device Art 1.png', title: 'Why Multi-Device Art?' },
+                    { image: 'Multi-Device Art 2.png', title: 'References' },
+                    { image: 'Multi-Device Art 3.png', title: 'Analysis of References' },
+                    { image: 'Multi-Device Art 4.png', title: 'Limitations' }
                 ]
             }
         ]
@@ -62,13 +62,12 @@ export const STRUCTURE = [
                 title: 'MDWA',
                 slideCount: 5,
                 slides: [
-                    { image: 'MDWA.png', title: 'Framework Overview' },
-                    { image: 'MDWA-3.png', title: 'Implementation Strategy' },
-                    { image: 'MDWA-1.png', title: 'Analysis of MDWA' },
-                    { image: 'MDWA-2.png', title: 'Analysis of MDWA' }
+                    { image: 'MDWA 1.png', title: 'Defining MDWA' },
+                    { image: 'MDWA 2.png', title: 'Jeanyoon\'s Works' },
+                    { image: 'MDWA 3.png', title: 'Three Key Concepts' },
+                    { image: 'MDWA 4.png', title: 'Three Frameworks' }
                 ]
-            },
-           
+            }
         ]
     },
     {
@@ -78,28 +77,38 @@ export const STRUCTURE = [
             {
                 id: '3-0',
                 title: 'Interactive Taxonomy',
-                slideCount: 2,
+                slideCount: 4,
                 slides: [
-                    { image: 'Interactive Taxonomy.png', title: 'Classification System' }
+                    { image: 'Interactive Taxonomy 1.png', title: 'Cross-Device Taxonomy' },
+                    { image: 'Interactive Taxonomy 2.png', title: 'Related Works' },
+                    { image: 'Interactive Taxonomy 3.png', title: 'Semantic-Phenomenological Spectrum (Conceptual)' }
                 ]
             },
             {
                 id: '3-1',
                 title: 'State-based Architecture',
-                slideCount: 3,
+                slideCount: 7,
                 slides: [
-                    { image: 'SbA.png', title: 'Architecture Overview' },
-                    { image: 'SbA-1.png', title: 'State Management' }
+                    { image: 'SbA 1.png', title: 'Key Objective' },
+                    { image: 'SbA 2.png', title: 'Current Interactive Art' },
+                    { image: 'SbA 3.png', title: 'Presenting SbA' },
+                    { image: 'SbA 4.png', title: 'Simple SbA' },
+                    { image: 'SbA 5.png', title: 'SbA + System Dynamics' },
+                    { image: 'SbA 6.png', title: 'What is/is not SbA?' }
                 ]
             },
             {
                 id: '3-2',
                 title: 'Dimensional Transformation',
-                slideCount: 4,
+                slideCount: 8,
                 slides: [
-                    { image: 'DT.png', title: 'Transformation Concepts' },
-                    { image: 'DT-1.png', title: '2D to 3D Mapping' },
-                    { image: 'DT-2.png', title: 'Spatial Relationships' }
+                    { image: 'DT 1.png', title: 'Key Objective' },
+                    { image: 'DT 2.png', title: 'Presenting DT' },
+                    { image: 'DT 3.png', title: 'Simple DT' },
+                    { image: 'DT 4.png', title: 'Multi-Device DT' },
+                    { image: 'DT 5.png', title: 'DT with Feedback Loop' },
+                    { image: 'DT 6.png', title: 'Complex SbA + DT with multiple systems' },
+                    { image: 'DT 7.png', title: 'SbA + DT benefits' },
                 ]
             }
         ]
@@ -111,9 +120,11 @@ export const STRUCTURE = [
             {
                 id: '4-0',
                 title: 'Research through Exhibition',
-                slideCount: 2,
+                slideCount: 4,
                 slides: [
-                    { image: 'RtE.png', title: 'Exhibition Framework' }
+                    { image: 'RtE 1.png', title: 'What is RtE?' },
+                    { image: 'RtE 2.png', title: 'PbR vs. RtD vs. RtE' },
+                    { image: 'RtE 3.png', title: 'Knowledge - Artwork Reinforcement Loop' }
                 ]
             }
         ]
@@ -124,26 +135,36 @@ export const STRUCTURE = [
         components: [
             {
                 id: '5-0',
-                title: 'Case Study 1',
-                slideCount: 2,
+                title: 'Case Study 1: SoTA',
+                slideCount: 6,
                 slides: [
-                    { image: 'Case Study 1.png', title: 'Implementation Details' }
+                    { image: 'Case Study 1-1.png', title: 'Presenting SoTA' },
+                    { image: 'Case Study 1-2.png', title: 'Artistic Metaphor' },
+                    { image: 'Case Study 1-3.png', title: 'Neural Network Visualisation' },
+                    { image: 'Case Study 1-4.png', title: 'Multi-Device Interaction' },
+                    { image: 'Case Study 1-5.png', title: 'Limitations of SoTA' }
                 ]
             },
             {
                 id: '5-1',
-                title: 'Case Study 2',
-                slideCount: 2,
+                title: 'Case Study 2: Urban Systems',
+                slideCount: 3,
                 slides: [
-                    { image: 'Case Study 2.png', title: 'Results Analysis' }
+                    { image: 'Case Study 2-1.png', title: 'Presenting Urban Systems' },
+                    { image: 'Case Study 2-2.png', title: 'WIP' }
                 ]
             },
             {
                 id: '5-2',
-                title: 'Case Study 3',
-                slideCount: 2,
+                title: 'Case Study 3: Economic Systems',
+                slideCount: 7,
                 slides: [
-                    { image: 'Case Study 3.png', title: 'Lessons Learned' }
+                    { image: 'Case Study 3-1.png', title: 'Presenting Economic Systems' },
+                    { image: 'Case Study 3-2.png', title: 'WIP' },
+                    { image: 'Case Study 3-3.png', title: 'Sample System Dynamics' },
+                    { image: 'Case Study 3-4.png', title: 'Macroeconomic SbA' },
+                    { image: 'Case Study 3-5.png', title: 'Sample Visual - Labour Market' },
+                    { image: 'Case Study 3-6.png', title: 'Sample Visual - Depiciting Economy through Parameteric Interface' }
                 ]
             }
         ]
@@ -155,12 +176,14 @@ export const STRUCTURE = [
             {
                 id: '6-0',
                 title: 'Research Output',
-                slideCount: 2,
+                slideCount: 5,
                 slides: [
-                    { image: 'Research Output.png', title: 'Key Findings' }
+                    { image: 'Research Output 0.png', title: '3X3 Grid Research Outcome' },
+                    { image: 'Research Output 1.png', title: 'Case studies bridging the gaps' },
+                    { image: 'Research Output 2.png', title: 'Case studies contributing to the framework' },
+                    { image: 'Research Output 3.png', title: 'Key Questions & Concerns' }
                 ]
             }
         ]
     }
-    
 ]

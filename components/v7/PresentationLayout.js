@@ -286,13 +286,27 @@ const PresentationLayoutV5 = ({ setNavigationFunctions, onImageClick }) => {
       }
     }
     
+    // Calculate total content slides (excluding title slides)
+    const totalContentSlides = slides.filter(slide => slide.slideType === 'image').length;
+    
+    // Calculate current content slide number (only count image slides up to current position)
+    let currentContentSlideNumber = 0;
+    if (currentNavigatedIndex >= 0) {
+      const slidesUpToCurrent = orderedSlideIds.slice(0, currentNavigatedIndex + 1);
+      currentContentSlideNumber = slidesUpToCurrent.filter(slideId => {
+        const slide = slides.find(s => s.id === slideId);
+        return slide && slide.slideType === 'image';
+      }).length;
+    }
+    
          if (setNavigationFunctions) {
        setNavigationFunctions({ 
          onPrev: goToPrevSlide, 
          onNext: goToNextSlide, 
          onOverview: goToOverview, 
          currentIndex: currentNavigatedIndex, 
-         totalSlides: orderedSlideIds.length,
+         currentContentSlideNumber: currentContentSlideNumber,
+         totalSlides: totalContentSlides,
          currentSlideTitle: currentSlide?.title,
          currentComponentTitle: componentTitle,
          currentSlideType: currentSlide?.slideType

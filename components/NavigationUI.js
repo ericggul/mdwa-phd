@@ -81,6 +81,7 @@ const NavigationUI = ({
   onNext,
   onOverview,
   currentIndex, // -1 for overview, 0 to N-1 for slides
+  currentContentSlideNumber, // the number of content slides seen so far
   totalSlides,
   currentSlideTitle,
   currentComponentTitle,
@@ -107,7 +108,7 @@ const NavigationUI = ({
           <>
             <div className="top-line">
               <span className="slide-counter">
-                Slide {currentIndex + 1} / {totalSlides}
+                Slide {currentContentSlideNumber} / {totalSlides}
               </span>
               {currentComponentTitle && (
                 <>
