@@ -154,11 +154,11 @@ const Slide = ({
       return;
     }
     
-    if (slideType === 'image' && imagePath && onImageClick) {
-      // For image slides, call the image click handler (imagePath is already bound)
+    if (slideType === 'image' && imagePath && onImageClick && isSelected) {
+      // For image slides that are currently selected, open image viewer
       onImageClick();
     } else {
-      // For other slides, use the regular click handler
+      // For all other cases (non-selected slides, title slides), navigate to the slide
       onClick();
     }
   };
@@ -171,10 +171,12 @@ const Slide = ({
     if (shouldCaptureClicks) {
       const canvas = event.target?.domElement || document.querySelector('canvas');
       if (canvas) {
-        if (slideType === 'image' && imagePath) {
+        if (slideType === 'image' && imagePath && isSelected) {
+          // Show zoom cursor only for currently selected image slides
           canvas.style.cursor = 'zoom-in';
           canvas.classList.add('zoom-cursor');
         } else {
+          // Show pointer cursor for all other clickable slides
           canvas.style.cursor = hovered ? 'pointer' : 'default';
           canvas.classList.remove('zoom-cursor');
         }

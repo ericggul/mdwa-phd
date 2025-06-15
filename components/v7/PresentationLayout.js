@@ -12,7 +12,8 @@ import {
   FLY_OVER_PAUSE_DURATION,
   SLIDE_WIDTH_16, 
   SLIDE_DEPTH_9, 
-  SLIDE_COMPONENT_SLOT_THICKNESS 
+  SLIDE_COMPONENT_SLOT_THICKNESS,
+  SLIDE_SPACING 
 } from './constants';
 
 const PresentationLayoutV5 = ({ setNavigationFunctions, onImageClick }) => {
@@ -44,14 +45,25 @@ const PresentationLayoutV5 = ({ setNavigationFunctions, onImageClick }) => {
       const layerHeight = (numComponents - 1) * yNodeSpacing;
       const startY = layerHeight / 2;
       const currentLayerBaseX = layerIndex * xLayerSpacing;
+      
+              // Calculate the maximum thickness for this layer
+        let maxLayerThickness = SLIDE_COMPONENT_SLOT_THICKNESS;
+        layer.components.forEach(component => {
+          const numSlides = component.slideCount || 1;
+          if (numSlides > 1) {
+            const totalComponentThickness = (numSlides - 1) * SLIDE_SPACING + SLIDE_COMPONENT_SLOT_THICKNESS;
+            maxLayerThickness = Math.max(maxLayerThickness, totalComponentThickness);
+          }
+        });
+      
       minXOverall = Math.min(minXOverall, currentLayerBaseX);
-      maxXOverall = Math.max(maxXOverall, currentLayerBaseX + SLIDE_COMPONENT_SLOT_THICKNESS);
+      maxXOverall = Math.max(maxXOverall, currentLayerBaseX + maxLayerThickness);
 
       layer.components.forEach((component, componentIndex) => {
         const componentBaseY = startY - componentIndex * yNodeSpacing;
         const componentBaseZ = 0; 
         const numSlidesForThisComponent = component.slideCount || 1; // Dynamic slide count from constants
-        const actualIndividualSlideThickness = SLIDE_COMPONENT_SLOT_THICKNESS / numSlidesForThisComponent;
+        const actualIndividualSlideThickness = SLIDE_COMPONENT_SLOT_THICKNESS; // All slides have same thickness
 
         if (numSlidesForThisComponent > 1) {
           for (let i = 0; i < numSlidesForThisComponent; i++) {
@@ -65,7 +77,7 @@ const PresentationLayoutV5 = ({ setNavigationFunctions, onImageClick }) => {
             
             const individualSlideTitle = slideTitle;
             const xPos = currentLayerBaseX + SLIDE_COMPONENT_SLOT_THICKNESS / 2;
-            const zPos = componentBaseZ - (i * actualIndividualSlideThickness * 1.1); 
+            const zPos = componentBaseZ - (i * SLIDE_SPACING); 
             const position = new THREE.Vector3(xPos, componentBaseY, zPos);
             generatedSlides.push({
               id: slideId,
@@ -91,7 +103,7 @@ const PresentationLayoutV5 = ({ setNavigationFunctions, onImageClick }) => {
             imagePath: null,
             position: position,
             showFrontEdgeTitle: false,
-            individualThickness: actualIndividualSlideThickness,
+            individualThickness: SLIDE_COMPONENT_SLOT_THICKNESS,
             isStackedPart: false,
             partIndex: 0
           });
@@ -112,8 +124,19 @@ const PresentationLayoutV5 = ({ setNavigationFunctions, onImageClick }) => {
         const layerHeight = (numComponents - 1) * yNodeSpacing;
         const startY = layerHeight / 2 - structureCenterY;
         const layerBaseX = layerIndex * xLayerSpacing - structureCenterX;
+        
+        // Calculate the maximum thickness for this layer
+        let maxLayerThickness = SLIDE_COMPONENT_SLOT_THICKNESS;
+        layer.components.forEach(component => {
+          const numSlides = component.slideCount || 1;
+          if (numSlides > 1) {
+            const totalComponentThickness = (numSlides - 1) * SLIDE_SPACING + SLIDE_COMPONENT_SLOT_THICKNESS;
+            maxLayerThickness = Math.max(maxLayerThickness, totalComponentThickness);
+          }
+        });
+        
         finalMinX = Math.min(finalMinX, layerBaseX);
-        finalMaxX = Math.max(finalMaxX, layerBaseX + SLIDE_COMPONENT_SLOT_THICKNESS);
+        finalMaxX = Math.max(finalMaxX, layerBaseX + maxLayerThickness);
         for(let compIdx = 0; compIdx < numComponents; compIdx++){
             const compY = startY - compIdx * yNodeSpacing;
             finalMinY = Math.min(finalMinY, compY - SLIDE_DEPTH_9/2);

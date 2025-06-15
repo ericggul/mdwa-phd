@@ -7,7 +7,8 @@ export const FLY_OVER_PAUSE_DURATION = 0; // ms to pause at overview
 export const SLIDE_WIDTH_16 = 16; 
 export const SLIDE_DEPTH_9 = 9;   
 export const SLIDE_THICKNESS = 0.8; // Thickness of individual slides
-export const SLIDE_COMPONENT_SLOT_THICKNESS = 2; // Total thickness each component slot occupies
+export const SLIDE_COMPONENT_SLOT_THICKNESS = 0.1; // Individual slide thickness
+export const SLIDE_SPACING = 1.0; // Spacing between slides
 export const EDGE_TITLE_Z_OFFSET = 2; // Added for Z-offsetting titles
 
 // BoxGeometry: [width, height, depth] where slides face forward (positive Z)
