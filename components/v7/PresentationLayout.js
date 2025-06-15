@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { useSpring, a } from '@react-spring/three';
 import { STRUCTURE } from '@/utils/constant';
 import Slide from './Slide';
+
 import { 
   SPRING_CONFIG_NORMAL, 
   SPRING_CONFIG_FLYOVER, 
@@ -14,7 +15,7 @@ import {
   SLIDE_COMPONENT_SLOT_THICKNESS 
 } from './constants';
 
-const PresentationLayoutV5 = ({ setNavigationFunctions, onImageClick }) => {
+const PresentationLayoutV5 = ({ setNavigationFunctions, onImageClick, preloadedImages }) => {
   const [selectedSlideId, setSelectedSlideId] = useState(null);
   const [currentNavigatedIndex, setCurrentNavigatedIndex] = useState(-1);
   const [visuallySelectedSlideId, setVisuallySelectedSlideId] = useState(null);
@@ -171,27 +172,23 @@ const PresentationLayoutV5 = ({ setNavigationFunctions, onImageClick }) => {
   useEffect(() => {
     const currentSelectedId = selectedSlideId;
     const previousSelectedIdForEffect = prevSlideIdAnimRef.current;
-    console.log(`[CameraEffect] Triggered. Current selectedSlideId: ${currentSelectedId}, Previous ID for anim: ${previousSelectedIdForEffect}`);
     const targetSlide = currentSelectedId ? slides.find(s => s.id === currentSelectedId) : null;
     const prevSlideForEffect = previousSelectedIdForEffect ? slides.find(s => s.id === previousSelectedIdForEffect) : null;
     const currentSectionIndex = targetSlide ? getSectionIndexFromSlideId(targetSlide.id) : -1;
     const previousSectionIndex = prevSlideForEffect ? getSectionIndexFromSlideId(prevSlideForEffect.id) : -1;
     const shouldFlyOver = prevSlideForEffect && targetSlide && currentSectionIndex !== -1 && previousSectionIndex !== -1 && currentSectionIndex !== previousSectionIndex;
-    console.log(`[CameraEffect] Target: ${targetSlide?.id}, Prev: ${prevSlideForEffect?.id}, CurrentSection: ${currentSectionIndex}, PrevSection: ${previousSectionIndex}, ShouldFlyOver: ${shouldFlyOver}`);
     const overviewCameraProps = { position: initialCameraPosition.toArray(), target: initialLookAt.toArray(), up: defaultCameraUp.toArray() };
 
     if (targetSlide) {
       const zoomedInProps = calculateZoomedInCameraProps(targetSlide);
       if (!zoomedInProps) { console.error("[CameraEffect] Could not calculate zoomedInProps for targetSlide:", targetSlide); return; }
       if (shouldFlyOver) {
-        console.log(`[CameraEffect] Starting FLY OVER from ${previousSelectedIdForEffect} to ${currentSelectedId}`);
         setIsFlyingOver(true);
         setVisuallySelectedSlideId(previousSelectedIdForEffect);
-        dimmingApi.start({ opacity: 1, immediate: false, config: SPRING_CONFIG_NORMAL, onRest: () => {} /* console.log("[Dimming] Fly-over dimming (to 1) onRest") */ });
+        dimmingApi.start({ opacity: 1, immediate: false, config: SPRING_CONFIG_NORMAL, onRest: () => {} });
         cameraApi.start({
           from: { position: camera.position.toArray(), target: controlsRef.current ? controlsRef.current.target.toArray() : initialLookAt.toArray(), up: camera.up.toArray() },
           to: async (next) => {
-            console.log("[CameraEffect FlyOver TO] Zooming OUT to overview.");
             // Start zooming out
             const zoomOutPromise = next({ ...overviewCameraProps, config: SPRING_CONFIG_NORMAL, immediate: false });
             // Transition visual selection halfway through zoom-out
@@ -199,38 +196,30 @@ const PresentationLayoutV5 = ({ setNavigationFunctions, onImageClick }) => {
               setVisuallySelectedSlideId(currentSelectedId);
             }, 300); // Smooth transition during zoom-out
             await zoomOutPromise;
-            console.log("[CameraEffect FlyOver TO] Pausing at overview.");
             await new Promise(res => setTimeout(res, FLY_OVER_PAUSE_DURATION));      
-            console.log(`[CameraEffect FlyOver TO] Zooming IN to ${currentSelectedId}.`);
             await next({ ...zoomedInProps, config: SPRING_CONFIG_NORMAL, immediate: false });
           },
           onStart: () => {
-            console.log("[CameraEffect FlyOver] onStart: setIsFlyingOver(true)");
             setIsFlyingOver(true); 
           },
           onRest: (result) => { 
-            console.log(`[CameraEffect FlyOver] onRest. Cancelled: ${result.cancelled}, Finished: ${result.finished}. Setting setIsFlyingOver(false).`);
             setIsFlyingOver(false);
             if (!result.cancelled && result.finished) {
                 if (zoomedInProps && controlsRef.current) controlsRef.current.target.fromArray(zoomedInProps.target);
                 setTimeout(() => {
-                  if (selectedSlideId) dimmingApi.start({ opacity: 0.1, immediate: false, config: SPRING_CONFIG_NORMAL, onRest: () => {} /* console.log("[Dimming] Post-fly-over dimming (to 0.1) onRest") */ });
+                  if (selectedSlideId) dimmingApi.start({ opacity: 0.1, immediate: false, config: SPRING_CONFIG_NORMAL, onRest: () => {} });
                 }, 50);
             }
             if (controlsRef.current) controlsRef.current.update();
           }
         });
       } else { 
-        console.log(`[CameraEffect] Starting DIRECT transition to ${currentSelectedId}. Previous: ${previousSelectedIdForEffect}`);
         setIsFlyingOver(false); 
-        console.log(`[CameraEffect] Dimming non-selected slides (opacity 0.1) for DIRECT transition. IMMEDIATE.`);
-        dimmingApi.start({ opacity: 0.1, immediate: true, onRest: () => {} /* console.log("[Dimming] Direct transition dimming (to 0.1) onRest") */ });
+        dimmingApi.start({ opacity: 0.1, immediate: true, onRest: () => {} });
       }
     } else { 
-      console.log(`[CameraEffect] Going to OVERVIEW. Previous: ${previousSelectedIdForEffect}`);
       setIsFlyingOver(false); 
-      console.log("[CameraEffect] Making all slides visible (opacity 1) for OVERVIEW.");
-      dimmingApi.start({ opacity: 1, immediate: false, config: SPRING_CONFIG_NORMAL, onRest: () => {} /* console.log("[Dimming] Overview visibility (to 1) onRest") */ });
+      dimmingApi.start({ opacity: 1, immediate: false, config: SPRING_CONFIG_NORMAL, onRest: () => {} });
     }
   }, [selectedSlideId, slides, cameraApi, dimmingApi, initialCameraPosition, initialLookAt, defaultCameraUp, camera.fov, size.width, size.height]);
 
@@ -362,6 +351,8 @@ const PresentationLayoutV5 = ({ setNavigationFunctions, onImageClick }) => {
     }
   }, [selectedSlideId, isFlyingOver]);
 
+
+
   return (
     <>
       <OrbitControls ref={controlsRef} />
@@ -388,7 +379,6 @@ const PresentationLayoutV5 = ({ setNavigationFunctions, onImageClick }) => {
               // Hide any slide that is in front of (has lower index than) the selected slide
               if (currentPartIndex < selectedPartIndex) {
                     isStrictlyHidden = true;
-                console.log(`[RenderSlides] STRICTLY HIDING ${slide.id} (part ${currentPartIndex}) because ${selectedSlideId} (part ${selectedPartIndex}) is selected.`);
               }
             }
           }
@@ -408,7 +398,6 @@ const PresentationLayoutV5 = ({ setNavigationFunctions, onImageClick }) => {
               // If an image slide behind this title slide is selected, this title slide should not capture clicks
               if (currentPartIndex < selectedPartIndex) {
                 shouldCaptureClicks = false;
-                console.log(`[ClickCapture] Title slide ${slide.id} will NOT capture clicks because image slide ${selectedSlideId} is selected behind it.`);
                 }
             }
           }
@@ -445,6 +434,7 @@ const PresentationLayoutV5 = ({ setNavigationFunctions, onImageClick }) => {
               animatedOpacity={currentAnimatedOpacity}
               individualThickness={slide.individualThickness}
               isStrictlyHidden={isStrictlyHidden}
+              preloadedImages={preloadedImages}
             />
           );
         })}
