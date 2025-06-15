@@ -4,9 +4,31 @@ import { ThemeProvider } from 'styled-components';
 import GlobalStyles from '../styles/GlobalStyles';
 import theme from '../styles/theme';
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/router';
+
+// Helper function for Google Analytics
+const pageview = (url) => {
+  if (window.gtag) {
+    window.gtag('config', 'G-KZEHKCCF95', {
+      page_path: url,
+    });
+  }
+};
 
 export default function App({ Component, pageProps }) {
   const [isClient, setIsClient] = useState(false);
+  const router = useRouter();
+
+  useEffect(() => {
+    const handleRouteChange = (url) => {
+      pageview(url);
+    };
+
+    router.events.on('routeChangeComplete', handleRouteChange);
+    return () => {
+      router.events.off('routeChangeComplete', handleRouteChange);
+    };
+  }, [router.events]);
 
   useEffect(() => {
     setIsClient(true); // Set to true once mounted on the client
