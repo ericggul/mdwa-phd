@@ -34,6 +34,8 @@ export default class MyDocument extends Document {
       <Head>
         {/* Google Site Verification */}
         <meta name="google-site-verification" content="AIchsA9Mq3CMvYcGfF1yGCEcrizm3kllltoX1X4249c" />
+        {/* Naver Site Verification */}
+        <meta name="naver-site-verification" content="cc36460d6b56087f9fb704441b171c1e46cab0fe" />
         
         {/* Google tag (gtag.js) */}
         <script async src="https://www.googletagmanager.com/gtag/js?id=G-KZEHKCCF95"></script>
