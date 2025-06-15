@@ -4,8 +4,8 @@ export const SPRING_CONFIG_FLYOVER = { tension: 160, friction: 28 }; // Adjusted
 export const FLY_OVER_PAUSE_DURATION = 0; // ms to pause at overview
 
 // Intro Animation Parameters - 쉽게 조절 가능
-export const COMPONENT_DELAY_MS = 500; // 컴포넌트 간 딜레이
-export const INTER_SECTION_OVERLAP_MS = -200; // 섹션 간 오버랩 (음수 = 이전꺼 끝나기전에 다음꺼 시작)
+export const COMPONENT_DELAY_MS = 300; // 컴포넌트 간 딜레이
+export const INTER_SECTION_OVERLAP_MS = -500; // 섹션 간 오버랩 (음수 = 이전꺼 끝나기전에 다음꺼 시작)
 export const WITHIN_COMPONENT_DELAY_MS = 100; // 컴포넌트 내 슬라이드 간 딜레이
 export const TOTAL_ANIMATION_DURATION_MS = 10000; // 전체 애니메이션 지속시간
 export const INTRO_SPRING_TENSION = 150; // 인트로 애니메이션 spring tension
