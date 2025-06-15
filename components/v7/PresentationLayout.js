@@ -15,7 +15,7 @@ import {
   SLIDE_COMPONENT_SLOT_THICKNESS 
 } from './constants';
 
-const PresentationLayoutV5 = ({ setNavigationFunctions, onImageClick, preloadedImages }) => {
+const PresentationLayoutV5 = ({ setNavigationFunctions, onImageClick }) => {
   const [selectedSlideId, setSelectedSlideId] = useState(null);
   const [currentNavigatedIndex, setCurrentNavigatedIndex] = useState(-1);
   const [visuallySelectedSlideId, setVisuallySelectedSlideId] = useState(null);
@@ -434,7 +434,6 @@ const PresentationLayoutV5 = ({ setNavigationFunctions, onImageClick, preloadedI
               animatedOpacity={currentAnimatedOpacity}
               individualThickness={slide.individualThickness}
               isStrictlyHidden={isStrictlyHidden}
-              preloadedImages={preloadedImages}
             />
           );
         })}

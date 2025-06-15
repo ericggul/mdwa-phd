@@ -1,7 +1,6 @@
 import React, { useRef, useState, useEffect, Suspense } from 'react';
 import { Text } from '@react-three/drei';
 import { useSpring, a } from '@react-spring/three';
-import { useLoader } from '@react-three/fiber';
 import * as THREE from 'three';
 import { 
   SPRING_CONFIG_NORMAL, 
@@ -13,14 +12,73 @@ import {
 const AnimatedDreiText = a(Text);
 
 const ImageSlideContent = ({ imagePath, springProps, isStrictlyHidden, id }) => {
-  // Properly encode the path to handle spaces and special characters
-  const encodedPath = imagePath.replace(/ /g, '%20');
+  const [imageTexture, setImageTexture] = useState(null);
+  const [loadingError, setLoadingError] = useState(false);
   
-  let imageTexture;
-  try {
-    imageTexture = useLoader(THREE.TextureLoader, encodedPath);
-  } catch (error) {
-    console.error(`[ImageSlideContent ${id}] useLoader failed:`, error);
+  useEffect(() => {
+    if (!imagePath) return;
+    
+    // Clean up previous texture
+    if (imageTexture) {
+      imageTexture.dispose();
+    }
+    
+    setLoadingError(false);
+    setImageTexture(null);
+    
+    // Create image element for loading
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    
+    img.onload = () => {
+      try {
+        // Create texture from loaded image
+        const texture = new THREE.Texture(img);
+        
+        // Optimize texture settings for maximum quality
+        texture.flipY = true;
+        texture.wrapS = THREE.ClampToEdgeWrapping;
+        texture.wrapT = THREE.ClampToEdgeWrapping;
+        
+        // Use highest quality filtering
+        texture.magFilter = THREE.LinearFilter;
+        texture.minFilter = THREE.LinearMipmapLinearFilter;
+        
+        // Ensure proper color space
+        texture.colorSpace = THREE.SRGBColorSpace;
+        
+        // Prevent texture compression/downsampling
+        texture.generateMipmaps = true;
+        texture.premultiplyAlpha = false;
+        
+        // Force texture update
+        texture.needsUpdate = true;
+        
+        setImageTexture(texture);
+      } catch (error) {
+        console.error(`[ImageSlideContent ${id}] Texture creation failed:`, error);
+        setLoadingError(true);
+      }
+    };
+    
+    img.onerror = (error) => {
+      console.error(`[ImageSlideContent ${id}] Image load failed for: ${imagePath}`, error);
+      setLoadingError(true);
+    };
+    
+    // Set the image source - handle spaces and special characters
+    const cleanPath = imagePath.replace(/\s+/g, '%20');
+    img.src = cleanPath;
+    
+    // Cleanup function
+    return () => {
+      if (imageTexture) {
+        imageTexture.dispose();
+      }
+    };
+  }, [imagePath, id]);
+
+  if (loadingError) {
     return (
       <a.meshBasicMaterial 
         color="red"
@@ -29,35 +87,6 @@ const ImageSlideContent = ({ imagePath, springProps, isStrictlyHidden, id }) => 
       />
     );
   }
-  
-  useEffect(() => {
-    if (imageTexture) {
-      // Log original texture properties for debugging
-      console.log(`[TEXTURE QUALITY ${id}] Original size: ${imageTexture.image?.width}x${imageTexture.image?.height}`);
-      console.log(`[TEXTURE QUALITY ${id}] Format: ${imageTexture.format}, Type: ${imageTexture.type}`);
-      
-      // Optimize texture settings for maximum quality
-      imageTexture.flipY = true;
-      imageTexture.wrapS = THREE.ClampToEdgeWrapping;
-      imageTexture.wrapT = THREE.ClampToEdgeWrapping;
-      
-      // Use highest quality filtering
-      imageTexture.magFilter = THREE.LinearFilter;
-      imageTexture.minFilter = THREE.LinearMipmapLinearFilter;
-      
-      // Ensure proper color space
-      imageTexture.colorSpace = THREE.SRGBColorSpace;
-      
-      // Prevent texture compression/downsampling
-      imageTexture.generateMipmaps = true;
-      imageTexture.premultiplyAlpha = false;
-      
-      // Force texture update
-      imageTexture.needsUpdate = true;
-      
-      console.log(`[TEXTURE QUALITY ${id}] Applied settings - ColorSpace: ${imageTexture.colorSpace}, MagFilter: ${imageTexture.magFilter}, MinFilter: ${imageTexture.minFilter}`);
-    }
-  }, [imageTexture, imagePath, id]);
 
   if (!imageTexture) {
     return (
@@ -69,13 +98,15 @@ const ImageSlideContent = ({ imagePath, springProps, isStrictlyHidden, id }) => 
     );
   }
 
-  // Use meshBasicMaterial for unlit, pure image display (like img tag)
+  // Use meshStandardMaterial for better image quality
   return (
-    <a.meshBasicMaterial 
+    <a.meshStandardMaterial 
       map={imageTexture}
       transparent={springProps.meshOpacity.get() < 1.0}
       opacity={springProps.meshOpacity}
       side={THREE.FrontSide}
+      roughness={0.5}
+      metalness={0.5}
       toneMapped={false}
     />
   );
