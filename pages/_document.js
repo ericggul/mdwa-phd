@@ -32,6 +32,9 @@ export default class MyDocument extends Document {
   return (
     <Html lang="en">
       <Head>
+        {/* Google Site Verification */}
+        <meta name="google-site-verification" content="AIchsA9Mq3CMvYcGfF1yGCEcrizm3kllltoX1X4249c" />
+        
         {/* Google tag (gtag.js) */}
         <script async src="https://www.googletagmanager.com/gtag/js?id=G-KZEHKCCF95"></script>
         <script
