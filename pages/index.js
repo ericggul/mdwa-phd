@@ -18,8 +18,10 @@ export default function V5Page() {
   return (
     <>
       <Head>
-        <title>PhD Interactive Presentation - V5</title>
-        <meta name="description" content="An interactive 3D presentation (V5) with frontal grid layout" />
+        <title>MDWA - Multi-Device Web Artwork | Jeanyoon Choi PhD Research</title>
+        <meta name="description" content="Multi-Device Web Artwork: A Semantic and Modular Framework for Interactive Systems Art - PhD Qualification Research by Jeanyoon Choi at KAIST XD Lab" />
+        <meta name="keywords" content="MDWA, Multi-Device Web Artwork, Systems Art, Interactive Art, PhD Research, KAIST, XD Lab, Jeanyoon Choi" />
+        <meta name="author" content="Jeanyoon Choi" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <MainContainer>
