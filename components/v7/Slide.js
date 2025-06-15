@@ -6,7 +6,9 @@ import {
   SPRING_CONFIG_NORMAL, 
   SLIDE_WIDTH_16, 
   SLIDE_DEPTH_9, 
-  EDGE_TITLE_Z_OFFSET 
+  EDGE_TITLE_Z_OFFSET,
+  INTRO_SPRING_TENSION,
+  INTRO_SPRING_FRICTION
 } from './constants';
 
 const AnimatedDreiText = a(Text);
@@ -125,18 +127,47 @@ const Slide = ({
   showFrontEdgeTitle, 
   individualThickness, 
   animatedOpacity, 
-  isStrictlyHidden 
+  isStrictlyHidden,
+  isFirstEntry = false,
+  introDelay = 0
 }) => {
   const meshRef = useRef();
   const [hovered, setHover] = useState(false);
+  const [hasIntroAnimationRun, setHasIntroAnimationRun] = useState(false);
+  const [introAnimationStarted, setIntroAnimationStarted] = useState(false);
+
+  // Start intro animation after delay - only when user enters from intro page
+  useEffect(() => {
+    if (isFirstEntry && !hasIntroAnimationRun && !introAnimationStarted) {
+      const timer = setTimeout(() => {
+        setIntroAnimationStarted(true);
+      }, introDelay);
+      
+      return () => {
+        clearTimeout(timer);
+      };
+    }
+  }, [isFirstEntry, introDelay, hasIntroAnimationRun, introAnimationStarted, id]);
 
   const springProps = useSpring({
-    scale: hovered && !isSelected ? 1.05 : 1,
+    scale: (!hasIntroAnimationRun && !introAnimationStarted)
+      ? 0 
+      : hovered && !isSelected 
+        ? 1.05 
+        : 1,
+    rotationX: (!hasIntroAnimationRun && !introAnimationStarted)
+      ? -Math.PI / 2  // 90 degrees - lying flat (vertical)
+      : 0,           // 0 degrees - facing forward
     meshOpacity: animatedOpacity,
     textOpacity: animatedOpacity,
-    config: SPRING_CONFIG_NORMAL,
+    config: (!hasIntroAnimationRun)
+      ? { tension: INTRO_SPRING_TENSION, friction: INTRO_SPRING_FRICTION } 
+      : SPRING_CONFIG_NORMAL,
     onRest: () => {
-      // Spring animation completed
+      // If this was the intro animation completing
+      if (isFirstEntry && introAnimationStarted && !hasIntroAnimationRun) {
+        setHasIntroAnimationRun(true);
+      }
     }
   });
   
@@ -200,6 +231,7 @@ const Slide = ({
       ref={meshRef}
       position={position}
       scale={springProps.scale}
+      rotation-x={springProps.rotationX}
       visible={!isStrictlyHidden && springProps.meshOpacity.get() > 0.01} // Apply strict hide and opacity-based visibility
       onClick={shouldCaptureClicks && !isStrictlyHidden ? handleClick : undefined}
       onPointerOver={shouldCaptureClicks && !isStrictlyHidden ? handlePointerOver : undefined}

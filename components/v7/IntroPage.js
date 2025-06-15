@@ -222,7 +222,8 @@ const LoadingDots = styled.div`
 const IntroPage = ({ onEnter, isLoading = true, loadingProgress = 0 }) => {
   const [isExiting, setIsExiting] = useState(false);
 
-  const handleEnter = () => {
+  const handleEnterClick = () => {
+    console.log('🎯 [INTRO] User clicked "Enter Interactive 3D Experience" button');
     setIsExiting(true);
     setTimeout(() => {
       onEnter();
@@ -230,6 +231,7 @@ const IntroPage = ({ onEnter, isLoading = true, loadingProgress = 0 }) => {
   };
 
   const handleDownloadPDF = () => {
+    console.log('📥 [INTRO] User clicked "Download PDF" button');
     // Create a link to download the PDF
     const link = document.createElement('a');
     link.href = '/pdf/jeanyoon_choi_mdwa.pdf';
@@ -260,7 +262,7 @@ const IntroPage = ({ onEnter, isLoading = true, loadingProgress = 0 }) => {
         </Description>
 
         <ButtonContainer>
-          <PrimaryButton onClick={handleEnter} disabled={isLoading}>
+          <PrimaryButton onClick={handleEnterClick} disabled={isLoading}>
             {isLoading ? 'Loading 3D Experience...' : 'Enter Interactive 3D Experience'}
             <span>→</span>
           </PrimaryButton>

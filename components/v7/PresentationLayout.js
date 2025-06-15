@@ -13,10 +13,13 @@ import {
   SLIDE_WIDTH_16, 
   SLIDE_DEPTH_9, 
   SLIDE_COMPONENT_SLOT_THICKNESS,
-  SLIDE_SPACING 
+  SLIDE_SPACING,
+  COMPONENT_DELAY_MS,
+  INTER_SECTION_OVERLAP_MS,
+  WITHIN_COMPONENT_DELAY_MS
 } from './constants';
 
-const PresentationLayoutV5 = ({ setNavigationFunctions, onImageClick }) => {
+const PresentationLayoutV5 = ({ setNavigationFunctions, onImageClick, shouldStartIntroAnimation }) => {
   const [selectedSlideId, setSelectedSlideId] = useState(null);
   const [currentNavigatedIndex, setCurrentNavigatedIndex] = useState(-1);
   const [visuallySelectedSlideId, setVisuallySelectedSlideId] = useState(null);
@@ -32,7 +35,7 @@ const PresentationLayoutV5 = ({ setNavigationFunctions, onImageClick }) => {
     config: SPRING_CONFIG_NORMAL,
   }));
 
-  const { slides, totalActualHeight, totalActualWidth, orderedSlideIds, initialLookAt, initialCameraPosition } = React.useMemo(() => {
+  const { slides, totalActualHeight, totalActualWidth, orderedSlideIds, initialLookAt, initialCameraPosition, slideIntroDelays } = React.useMemo(() => {
     const generatedSlides = [];
     const generatedOrderedSlideIds = [];
     const xLayerSpacing = SLIDE_WIDTH_16 * 1.1; // Horizontal spacing between layers
@@ -156,7 +159,68 @@ const PresentationLayoutV5 = ({ setNavigationFunctions, onImageClick }) => {
     if (widthToFit > 0 && aspect > 0) zDistanceWidth = (widthToFit / (2 * aspect)) / Math.tan(fovInRadians / 2);
     const zDistance = Math.max(zDistanceHeight, zDistanceWidth, 20) * 1.3;
     const memoizedInitialCameraPosition = new THREE.Vector3(0, 0, zDistance);
-    return { slides: generatedSlides, totalActualHeight: calcTotalActualHeight, totalActualWidth: calcTotalActualWidth, orderedSlideIds: generatedOrderedSlideIds, initialLookAt: memoizedInitialLookAt, initialCameraPosition: memoizedInitialCameraPosition };
+    
+    // Calculate intro animation delays
+    const introDelays = {};
+    const componentGroups = {};
+    
+    // Group slides by component
+    generatedSlides.forEach(slide => {
+      const parts = slide.id.split('-');
+      const layerIndex = parseInt(parts[0], 10);
+      const componentIndex = parseInt(parts[1], 10);
+      const partIndex = parseInt(parts[2], 10);
+      const componentKey = `${layerIndex}-${componentIndex}`;
+      
+      if (!componentGroups[componentKey]) {
+        componentGroups[componentKey] = [];
+      }
+      componentGroups[componentKey].push({ slide, partIndex });
+    });
+    
+    // Calculate delays: back slides first, then front slides with inter-section delays
+    let currentSectionId = null;
+    let sectionCount = 0;
+    
+    Object.keys(componentGroups).forEach((componentKey, componentOrder) => {
+      const group = componentGroups[componentKey];
+      const maxPartIndex = Math.max(...group.map(item => item.partIndex));
+      
+      // Check if we're entering a new section
+      const sectionId = componentKey.split('-')[0];
+      if (currentSectionId !== sectionId) {
+        if (currentSectionId !== null) {
+          sectionCount++;
+        }
+        currentSectionId = sectionId;
+      }
+      
+      group.forEach(({ slide, partIndex }) => {
+        // Base delay per component (stagger components)
+        const componentDelay = componentOrder * COMPONENT_DELAY_MS;
+        
+        // Inter-section overlap (negative = previous section overlaps with next)
+        const intersectionOverlap = sectionCount * INTER_SECTION_OVERLAP_MS;
+        
+        // Within component: back slides (higher partIndex) appear first
+        const withinComponentDelay = (maxPartIndex - partIndex) * WITHIN_COMPONENT_DELAY_MS;
+        
+        // Total delay
+        const totalDelay = componentDelay + intersectionOverlap + withinComponentDelay;
+        
+        introDelays[slide.id] = totalDelay;
+      });
+    });
+    
+    return { 
+      slides: generatedSlides, 
+      totalActualHeight: calcTotalActualHeight, 
+      totalActualWidth: calcTotalActualWidth, 
+      orderedSlideIds: generatedOrderedSlideIds, 
+      initialLookAt: memoizedInitialLookAt, 
+      initialCameraPosition: memoizedInitialCameraPosition,
+      slideIntroDelays: introDelays
+    };
   }, [camera.fov, size.width, size.height]);
 
   const [cameraSpring, cameraApi] = useSpring(() => ({
@@ -376,6 +440,8 @@ const PresentationLayoutV5 = ({ setNavigationFunctions, onImageClick }) => {
 
 
 
+
+
   return (
     <>
       <OrbitControls ref={controlsRef} />
@@ -457,6 +523,8 @@ const PresentationLayoutV5 = ({ setNavigationFunctions, onImageClick }) => {
               animatedOpacity={currentAnimatedOpacity}
               individualThickness={slide.individualThickness}
               isStrictlyHidden={isStrictlyHidden}
+              isFirstEntry={shouldStartIntroAnimation}
+              introDelay={slideIntroDelays[slide.id] || 0}
             />
           );
         })}

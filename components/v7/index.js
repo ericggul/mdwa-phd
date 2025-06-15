@@ -6,12 +6,14 @@ import NavigationUI from '../NavigationUI';
 import ImageViewer from './ImageViewer';
 import IntroPage from './IntroPage';
 import useContentLoader from './hooks/useContentLoader';
+import { TOTAL_ANIMATION_DURATION_MS } from './constants';
 
 const InteractivePresentationV5 = () => {
   const [navFunctions, setNavFunctions] = useState({ onPrev: () => {}, onNext: () => {}, onOverview: () => {}, currentIndex: -1, totalSlides: 0 });
   const [imageViewerOpen, setImageViewerOpen] = useState(false);
   const [currentViewerImage, setCurrentViewerImage] = useState(null);
   const [showIntro, setShowIntro] = useState(true);
+  const [shouldStartIntroAnimation, setShouldStartIntroAnimation] = useState(false);
   
   const { isLoading, loadingProgress, handleCanvasReady } = useContentLoader();
 
@@ -27,6 +29,12 @@ const InteractivePresentationV5 = () => {
 
   const handleEnterExperience = () => {
     setShowIntro(false);
+    setShouldStartIntroAnimation(true);
+    
+    // Reset animation state after all animations complete
+    setTimeout(() => {
+      setShouldStartIntroAnimation(false);
+    }, TOTAL_ANIMATION_DURATION_MS);
   };
 
   const handleCanvasCreated = ({ gl }) => {
@@ -47,7 +55,11 @@ const InteractivePresentationV5 = () => {
         }} 
         onCreated={handleCanvasCreated}
       >
-        <PresentationLayoutV5 setNavigationFunctions={setNavFunctions} onImageClick={handleImageClick} />
+        <PresentationLayoutV5 
+          setNavigationFunctions={setNavFunctions} 
+          onImageClick={handleImageClick}
+          shouldStartIntroAnimation={shouldStartIntroAnimation}
+        />
       </Canvas>
       
       {/* Navigation UI - only show when not in intro */}
