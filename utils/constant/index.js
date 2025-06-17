@@ -60,10 +60,11 @@ export const STRUCTURE = [
             {
                 id: '2-0',
                 title: 'MDWA',
-                slideCount: 5,
+                slideCount: 6,
                 slides: [
                     { image: 'MDWA 1.png', title: 'Defining MDWA' },
                     { image: 'MDWA 2.png', title: 'Jeanyoon\'s Works' },
+                    { video: '/vids/Omega.mp4', title: 'Sample MDWA: Omega (2025)' },
                     { image: 'MDWA 3.png', title: 'Three Key Concepts' },
                     { image: 'MDWA 4.png', title: 'Three Frameworks' }
                 ]
@@ -136,9 +137,10 @@ export const STRUCTURE = [
             {
                 id: '5-0',
                 title: 'Case Study 1: SoTA',
-                slideCount: 6,
+                slideCount: 7,
                 slides: [
                     { image: 'Case Study 1-1.png', title: 'Presenting SoTA' },
+                    { video: '/vids/SoTA.mp4', title: 'SoTA-Video' },
                     { image: 'Case Study 1-2.png', title: 'Artistic Metaphor' },
                     { image: 'Case Study 1-3.png', title: 'Neural Network Visualisation' },
                     { image: 'Case Study 1-4.png', title: 'Multi-Device Interaction' },
@@ -164,7 +166,7 @@ export const STRUCTURE = [
                     { image: 'Case Study 3-3.png', title: 'Sample System Dynamics' },
                     { image: 'Case Study 3-4.png', title: 'Macroeconomic SbA' },
                     { video: '/vids/Vid1.mp4', title: 'Sample Visual - Labour Market' },
-                    { video: '/vids/Vid2.mp4', title: 'Sample Visual - Depiciting Economy through Parameteric Interface' }
+                    { video: '/vids/Vid2.mp4', title: 'Sample Visual - Depiciting Market Economy' }
                 ]
             }
         ]
