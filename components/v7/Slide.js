@@ -130,7 +130,7 @@ const VideoSlideContent = ({ videoPath, springProps, isSelected, id }) => {
   }
 
   return (
-    <a.meshStandardMaterial 
+    <a.meshBasicMaterial 
       map={videoTexture}
       transparent={springProps.meshOpacity.get() < 1.0}
       opacity={springProps.meshOpacity}
@@ -231,7 +231,7 @@ const ImageSlideContent = ({ imagePath, springProps, isStrictlyHidden, id }) => 
 
   // Use meshStandardMaterial for better image quality
   return (
-    <a.meshStandardMaterial 
+    <a.meshBasicMaterial 
       map={imageTexture}
       transparent={springProps.meshOpacity.get() < 1.0}
       opacity={springProps.meshOpacity}
