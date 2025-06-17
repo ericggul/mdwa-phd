@@ -130,7 +130,7 @@ const VideoSlideContent = ({ videoPath, springProps, isSelected, id }) => {
   }
 
   return (
-    <a.meshBasicMaterial 
+    <a.meshStandardMaterial 
       map={videoTexture}
       transparent={springProps.meshOpacity.get() < 1.0}
       opacity={springProps.meshOpacity}
@@ -163,6 +163,7 @@ const ImageSlideContent = ({ imagePath, springProps, isStrictlyHidden, id }) => 
     
     img.onload = () => {
       try {
+        console.log(`[ImageSlideContent ${id}] Image loaded successfully:`, imagePath);
         // Create texture from loaded image
         const texture = new THREE.Texture(img);
         
@@ -186,6 +187,7 @@ const ImageSlideContent = ({ imagePath, springProps, isStrictlyHidden, id }) => 
         texture.needsUpdate = true;
         
         setImageTexture(texture);
+        console.log(`[ImageSlideContent ${id}] Texture created successfully`);
       } catch (error) {
         console.error(`[ImageSlideContent ${id}] Texture creation failed:`, error);
         setLoadingError(true);
@@ -194,11 +196,13 @@ const ImageSlideContent = ({ imagePath, springProps, isStrictlyHidden, id }) => 
     
     img.onerror = (error) => {
       console.error(`[ImageSlideContent ${id}] Image load failed for: ${imagePath}`, error);
+      console.error(`[ImageSlideContent ${id}] Full image src was:`, cleanPath);
       setLoadingError(true);
     };
     
     // Set the image source - handle spaces and special characters
     const cleanPath = imagePath.replace(/\s+/g, '%20');
+    console.log(`[ImageSlideContent ${id}] Loading image:`, cleanPath);
     img.src = cleanPath;
     
     // Cleanup function
@@ -230,14 +234,15 @@ const ImageSlideContent = ({ imagePath, springProps, isStrictlyHidden, id }) => 
   }
 
   // Use meshStandardMaterial for better image quality
+  const currentOpacity = springProps.meshOpacity.get();
+  console.log(`[ImageSlideContent ${id}] Current opacity:`, currentOpacity);
+  
   return (
-    <a.meshBasicMaterial 
+    <a.meshStandardMaterial 
       map={imageTexture}
-      transparent={springProps.meshOpacity.get() < 1.0}
-      opacity={springProps.meshOpacity}
+      transparent={currentOpacity < 1.0}
+      opacity={currentOpacity}
       side={THREE.FrontSide}
-      roughness={0.5}
-      metalness={0.5}
       toneMapped={false}
     />
   );
@@ -261,6 +266,10 @@ const Slide = ({
   isFirstEntry = false,
   introDelay = 0
 }) => {
+
+  console.log('imagePath', imagePath);
+  console.log('videoPath', videoPath);
+  
   const meshRef = useRef();
   const [hovered, setHover] = useState(false);
   const [hasIntroAnimationRun, setHasIntroAnimationRun] = useState(false);
