@@ -163,8 +163,8 @@ export const STRUCTURE = [
                     { image: 'Case Study 3-2.png', title: 'WIP' },
                     { image: 'Case Study 3-3.png', title: 'Sample System Dynamics' },
                     { image: 'Case Study 3-4.png', title: 'Macroeconomic SbA' },
-                    { image: 'Case Study 3-5.png', title: 'Sample Visual - Labour Market' },
-                    { image: 'Case Study 3-6.png', title: 'Sample Visual - Depiciting Economy through Parameteric Interface' }
+                    { video: '/vids/Vid1.mp4', title: 'Sample Visual - Labour Market' },
+                    { video: '/vids/Vid2.mp4', title: 'Sample Visual - Depiciting Economy through Parameteric Interface' }
                 ]
             }
         ]

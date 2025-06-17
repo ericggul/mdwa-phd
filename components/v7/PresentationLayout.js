@@ -75,7 +75,10 @@ const PresentationLayoutV5 = ({ setNavigationFunctions, onImageClick, shouldStar
             const isFirstSlide = i === 0;
             const slideType = isFirstSlide ? 'title' : 'image';
             const slideData = isFirstSlide ? null : component.slides[i - 1];
-            const imagePath = isFirstSlide ? null : `/slides/${slideData?.image}`;
+
+            const videoPath = slideData?.video ? slideData.video : null;
+            const imagePath = (isFirstSlide || videoPath) ? null : `/slides/${slideData?.image}`;
+
             const slideTitle = isFirstSlide ? component.title : slideData?.title;
             
             const individualSlideTitle = slideTitle;
@@ -87,6 +90,7 @@ const PresentationLayoutV5 = ({ setNavigationFunctions, onImageClick, shouldStar
               title: individualSlideTitle,
               slideType: slideType,
               imagePath: imagePath,
+              videoPath: videoPath,
               position: position,
               showFrontEdgeTitle: false, 
               individualThickness: actualIndividualSlideThickness,
@@ -104,6 +108,7 @@ const PresentationLayoutV5 = ({ setNavigationFunctions, onImageClick, shouldStar
             title: component.title, 
             slideType: 'title',
             imagePath: null,
+            videoPath: null,
             position: position,
             showFrontEdgeTitle: false,
             individualThickness: SLIDE_COMPONENT_SLOT_THICKNESS,
@@ -513,6 +518,7 @@ const PresentationLayoutV5 = ({ setNavigationFunctions, onImageClick, shouldStar
               title={slide.title}
               slideType={slide.slideType}
               imagePath={slide.imagePath}
+              videoPath={slide.videoPath}
               onClick={() => handleSlideClick(slide.id)}
               onImageClick={() => {
                 onImageClick(slide.imagePath);

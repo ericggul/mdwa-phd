@@ -13,6 +13,135 @@ import {
 
 const AnimatedDreiText = a(Text);
 
+const VideoSlideContent = ({ videoPath, springProps, isSelected, id }) => {
+  const videoRef = useRef(null);
+  const [videoTexture, setVideoTexture] = useState(null);
+  const [loadingError, setLoadingError] = useState(false);
+
+  useEffect(() => {
+    if (!videoPath) return;
+
+    setLoadingError(false);
+
+    const video = document.createElement('video');
+    video.crossOrigin = 'anonymous';
+    video.loop = true;
+    video.muted = true;
+    video.playsInline = true;
+    video.preload = 'auto';
+    video.src = videoPath.replace(/\s+/g, '%20');
+    
+    videoRef.current = video;
+
+    const handleCanPlay = () => {
+      try {
+        const texture = new THREE.VideoTexture(video);
+        texture.flipY = true;
+        texture.wrapS = THREE.ClampToEdgeWrapping;
+        texture.wrapT = THREE.ClampToEdgeWrapping;
+        texture.magFilter = THREE.LinearFilter;
+        texture.minFilter = THREE.LinearFilter;
+        texture.colorSpace = THREE.SRGBColorSpace;
+        texture.generateMipmaps = false;
+        
+        // Calculate aspect ratios
+        const slideAspect = SLIDE_WIDTH_16 / SLIDE_DEPTH_9;
+        const videoAspect = video.videoWidth / video.videoHeight;
+        
+        // Adjust texture repeat and offset to achieve "cover" effect
+        if (videoAspect > slideAspect) {
+          // Video is wider than slide
+          texture.repeat.x = slideAspect / videoAspect;
+          texture.offset.x = (1 - texture.repeat.x) / 2;
+          texture.repeat.y = 1;
+          texture.offset.y = 0;
+        } else {
+          // Video is taller than or same aspect as slide
+          texture.repeat.y = videoAspect / slideAspect;
+          texture.offset.y = (1 - texture.repeat.y) / 2;
+          texture.repeat.x = 1;
+          texture.offset.x = 0;
+        }
+
+        texture.needsUpdate = true;
+        
+        setVideoTexture(texture);
+      } catch (error) {
+        console.error(`[VideoSlideContent ${id}] Texture creation failed:`, error);
+        setLoadingError(true);
+      }
+    };
+
+    const handleError = (e) => {
+      console.error(`[VideoSlideContent ${id}] Video load failed for: ${videoPath}`, e);
+      setLoadingError(true);
+    };
+
+    video.addEventListener('canplay', handleCanPlay);
+    video.addEventListener('error', handleError);
+    
+    video.load();
+
+    return () => {
+      video.removeEventListener('canplay', handleCanPlay);
+      video.removeEventListener('error', handleError);
+      if (videoTexture) {
+        videoTexture.dispose();
+      }
+      if (video) {
+        video.pause();
+        video.removeAttribute('src');
+        video.load();
+      }
+    };
+  }, [videoPath, id]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (video && videoTexture) {
+      if (isSelected) {
+        video.play().catch(error => {
+          console.error(`[VideoSlideContent ${id}] Video autoplay was prevented:`, error);
+        });
+      } else {
+        video.pause();
+      }
+    }
+  }, [isSelected, videoTexture, id]);
+
+  if (loadingError) {
+    return (
+      <a.meshBasicMaterial 
+        color="red"
+        transparent
+        opacity={springProps.meshOpacity}
+      />
+    );
+  }
+
+  if (!videoTexture) {
+    return (
+      <a.meshBasicMaterial 
+        color="grey"
+        transparent
+        opacity={springProps.meshOpacity}
+      />
+    );
+  }
+
+  return (
+    <a.meshStandardMaterial 
+      map={videoTexture}
+      transparent={springProps.meshOpacity.get() < 1.0}
+      opacity={springProps.meshOpacity}
+      side={THREE.FrontSide}
+      roughness={0.5}
+      metalness={0.5}
+      toneMapped={false}
+    />
+  );
+};
+
 const ImageSlideContent = ({ imagePath, springProps, isStrictlyHidden, id }) => {
   const [imageTexture, setImageTexture] = useState(null);
   const [loadingError, setLoadingError] = useState(false);
@@ -119,7 +248,8 @@ const Slide = ({
   position, 
   title, 
   slideType, 
-  imagePath, 
+  imagePath,
+  videoPath, 
   onClick, 
   onImageClick, 
   isSelected, 
@@ -185,7 +315,7 @@ const Slide = ({
       return;
     }
     
-    if (slideType === 'image' && imagePath && onImageClick && isSelected) {
+    if (slideType === 'image' && imagePath && onImageClick && isSelected && !videoPath) {
       // For image slides that are currently selected, open image viewer
       onImageClick();
     } else {
@@ -202,7 +332,7 @@ const Slide = ({
     if (shouldCaptureClicks) {
       const canvas = event.target?.domElement || document.querySelector('canvas');
       if (canvas) {
-        if (slideType === 'image' && imagePath && isSelected) {
+        if (slideType === 'image' && imagePath && isSelected && !videoPath) {
           // Show zoom cursor only for currently selected image slides
           canvas.style.cursor = 'zoom-in';
           canvas.classList.add('zoom-cursor');
@@ -239,7 +369,22 @@ const Slide = ({
     >
 
       <boxGeometry args={adjustedBoxArgs} />
-      {slideType === 'image' && imagePath ? (
+      {videoPath ? (
+        <Suspense fallback={
+          <a.meshBasicMaterial 
+            color="gray"
+            transparent
+            opacity={springProps.meshOpacity}
+          />
+        }>
+          <VideoSlideContent 
+            videoPath={videoPath}
+            springProps={springProps}
+            isSelected={isSelected}
+            id={id}
+          />
+        </Suspense>
+      ) : imagePath ? (
         <Suspense fallback={
           <a.meshBasicMaterial 
             color="gray"
@@ -248,36 +393,36 @@ const Slide = ({
           />
         }>
           <ImageSlideContent 
-            imagePath={imagePath} 
-            springProps={springProps} 
+            imagePath={imagePath}
+            springProps={springProps}
             isStrictlyHidden={isStrictlyHidden}
             id={id}
           />
         </Suspense>
       ) : (
-        <a.meshBasicMaterial 
-        color={isSelected ? 'lightgreen' : hovered ? 'skyblue' : '#fff'} 
-        transparent
-        opacity={springProps.meshOpacity}
-      />
+        <a.meshBasicMaterial
+          color={isSelected ? 'lightgreen' : hovered ? 'skyblue' : '#fff'}
+          transparent
+          opacity={springProps.meshOpacity}
+        />
       )}
       
-      {slideType === 'title' && (
-        <AnimatedDreiText
+      {slideType === 'title' && title && (
+      <AnimatedDreiText
           font="/fonts/EBGaramond-VariableFont_wght.ttf"
           position={[0, 0, individualThickness / 2 + 0.1]}
-          fontSize={1.5}
-          color="black"
-          anchorX="center"
-          anchorY="middle"
-          maxWidth={SLIDE_WIDTH_16 * 0.85}
-          textAlign="center"
-          lineHeight={1.2}
-          fillOpacity={springProps.textOpacity}
-          fontWeight={300}
-        >
-          {title}
-        </AnimatedDreiText>
+        fontSize={1.5}
+        color="black"
+        anchorX="center"
+        anchorY="middle"
+        maxWidth={SLIDE_WIDTH_16 * 0.85}
+        textAlign="center"
+        lineHeight={1.2}
+        fillOpacity={springProps.textOpacity}
+        fontWeight={300}
+      >
+        {title}
+      </AnimatedDreiText>
       )}
 
     </a.mesh>

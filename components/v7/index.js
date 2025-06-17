@@ -64,7 +64,7 @@ const InteractivePresentationV5 = () => {
       
       {/* Navigation UI - only show when not in intro */}
       {!showIntro && (
-        <NavigationUI {...navFunctions} />
+      <NavigationUI {...navFunctions} />
       )}
       
       {/* Image Viewer */}
