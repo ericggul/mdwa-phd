@@ -35,7 +35,7 @@ const useContentLoader = () => {
                 setLoadingProgress((loadedImages / totalImages) * 100);
                 resolve(); // Still resolve to continue loading
               };
-              img.src = `/images/${slide.image}`;
+              img.src = `/slides/${slide.image}`;
             });
             imagePromises.push(imagePromise);
           }

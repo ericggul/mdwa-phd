@@ -1,0 +1,32 @@
+# Robots.txt for MDWA PhD Research
+# Multi-Device Web Artwork by Jeanyoon Choi
+
+User-agent: *
+Allow: /
+
+# Important research content
+Allow: /pdf/
+Allow: /api/og-image
+
+# Prioritize main content
+Crawl-delay: 1
+
+# Block unnecessary paths
+Disallow: /_next/
+Disallow: /api/hello
+
+# Academic crawlers get special treatment
+User-agent: Googlebot-Scholar
+Allow: /
+Allow: /pdf/
+
+User-agent: ia_archiver
+Allow: /
+
+# Sitemap location
+Sitemap: https://mdwa-phd.vercel.app/sitemap.xml
+
+# Additional academic content indicators
+# Research keywords: MDWA, Multi-Device Web Artwork, Interactive Art, PhD Research
+# Institution: KAIST XD Lab
+# Author: Jeanyoon Choi 

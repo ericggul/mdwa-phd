@@ -1,0 +1,42 @@
+{
+    "name": "MDWA: Multi-Device Web Artwork - PhD Research",
+    "short_name": "MDWA PhD",
+    "description": "PhD research on Multi-Device Web Artwork (MDWA) by Jeanyoon Choi at KAIST XD Lab. Interactive art, cross-device interfaces, and HCI research.",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#1e1e1e",
+    "theme_color": "#1e1e1e",
+    "orientation": "any",
+    "scope": "/",
+    "lang": "en",
+    "categories": [
+        "education",
+        "research",
+        "art",
+        "design"
+    ],
+    "icons": [
+        {
+            "src": "/android-chrome-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/android-chrome-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ],
+    "screenshots": [
+        {
+            "src": "/api/og-image",
+            "sizes": "1200x630",
+            "type": "image/html",
+            "label": "MDWA PhD Research Interface"
+        }
+    ],
+    "related_applications": [],
+    "prefer_related_applications": false
+}
