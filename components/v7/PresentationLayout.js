@@ -450,9 +450,27 @@ const PresentationLayoutV5 = ({ setNavigationFunctions, onImageClick, shouldStar
   });
 
   const handleSlideClick = (slideId) => { 
-    // console.log(`[SlideClick] Clicked on slide: ${slideId}, navigating to next slide`);
-    // Instead of navigating to the clicked slide, navigate to the next slide
-    goToNextSlide();
+    // console.log(`[SlideClick] Clicked on slide: ${slideId}`);
+    
+    // If we're in overview mode (currentNavigatedIndex === -1), navigate to the clicked slide (ORIGINAL BEHAVIOR)
+    if (currentNavigatedIndex === -1) {
+      const index = orderedSlideIds.findIndex(id => id === slideId); 
+      if (index !== -1) goToSlideByIndex(index); 
+      else { /* console.warn(`[SlideClick] Slide ID ${slideId} not found.`); */ goToOverview(); }
+    } else {
+      // If we're already viewing a slide
+      const currentSlideId = orderedSlideIds[currentNavigatedIndex];
+      
+      if (slideId === currentSlideId) {
+        // Clicking on the CURRENT slide → go to next slide
+        goToNextSlide();
+      } else {
+        // Clicking on a DIFFERENT slide → go to that specific slide
+        const index = orderedSlideIds.findIndex(id => id === slideId); 
+        if (index !== -1) goToSlideByIndex(index); 
+        else goToOverview();
+      }
+    }
   };
 
   const handleGoToOverview = () => {
