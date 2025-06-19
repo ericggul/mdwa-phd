@@ -324,32 +324,20 @@ const Slide = ({
       return;
     }
     
-    if (slideType === 'image' && imagePath && onImageClick && isSelected && !videoPath) {
-      // For image slides that are currently selected, open image viewer
-      onImageClick();
-    } else {
-      // For all other cases (non-selected slides, title slides), navigate to the slide
-      onClick();
-    }
+    // For all slides (title or image, selected or not), clicking navigates to the next slide
+    onClick();
   };
 
   const handlePointerOver = (event) => {
     event.stopPropagation();
     if (!isSelected) setHover(true);
     
-    // Only show special cursors if this slide captures clicks
+    // Only show pointer cursor for clickable slides (next slide navigation)
     if (shouldCaptureClicks) {
       const canvas = event.target?.domElement || document.querySelector('canvas');
       if (canvas) {
-        if (slideType === 'image' && imagePath && isSelected && !videoPath) {
-          // Show zoom cursor only for currently selected image slides
-          canvas.style.cursor = 'zoom-in';
-          canvas.classList.add('zoom-cursor');
-        } else {
-          // Show pointer cursor for all other clickable slides
-          canvas.style.cursor = hovered ? 'pointer' : 'default';
-          canvas.classList.remove('zoom-cursor');
-        }
+        canvas.style.cursor = 'pointer';
+        canvas.classList.remove('zoom-cursor');
       }
     }
   };

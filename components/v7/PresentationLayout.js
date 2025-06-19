@@ -343,7 +343,31 @@ const PresentationLayoutV5 = ({ setNavigationFunctions, onImageClick, shouldStar
   }, []);
 
   useEffect(() => {
-    const handleKeyDown = (event) => { if (event.key === 'ArrowRight') goToNextSlide(); else if (event.key === 'ArrowLeft') goToPrevSlide(); else if (event.key === 'Escape') goToOverview(); };
+    const handleKeyDown = (event) => { 
+      // Existing arrow key navigation
+      if (event.key === 'ArrowRight') {
+        goToNextSlide();
+      } else if (event.key === 'ArrowLeft') {
+        goToPrevSlide();
+      } else if (event.key === 'Escape') {
+        goToOverview();
+      }
+      // New WASD navigation
+      else if (event.key === 'w' || event.key === 'W') {
+        goToPrevSlide();
+      } else if (event.key === 'a' || event.key === 'A') {
+        goToPrevSlide();
+      } else if (event.key === 's' || event.key === 'S') {
+        goToNextSlide();
+      } else if (event.key === 'd' || event.key === 'D') {
+        goToNextSlide();
+      }
+      // New spacebar/enter navigation
+      else if (event.key === ' ' || event.key === 'Enter') {
+        event.preventDefault(); // Prevent default spacebar/enter behavior
+        goToNextSlide();
+      }
+    };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [goToNextSlide, goToPrevSlide, goToOverview]);
@@ -426,10 +450,9 @@ const PresentationLayoutV5 = ({ setNavigationFunctions, onImageClick, shouldStar
   });
 
   const handleSlideClick = (slideId) => { 
-    // console.log(`[SlideClick] Clicked on slide: ${slideId}`);
-    const index = orderedSlideIds.findIndex(id => id === slideId); 
-    if (index !== -1) goToSlideByIndex(index); 
-    else { /* console.warn(`[SlideClick] Slide ID ${slideId} not found.`); */ goToOverview(); } 
+    // console.log(`[SlideClick] Clicked on slide: ${slideId}, navigating to next slide`);
+    // Instead of navigating to the clicked slide, navigate to the next slide
+    goToNextSlide();
   };
 
   const handleGoToOverview = () => {

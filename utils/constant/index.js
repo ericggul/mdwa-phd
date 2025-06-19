@@ -166,7 +166,8 @@ export const STRUCTURE = [
                     { image: 'Case Study 3-3.png', title: 'Sample System Dynamics' },
                     { image: 'Case Study 3-4.png', title: 'Macroeconomic SbA' },
                     { video: '/vids/Vid1.mp4', title: 'Sample Visual - Labour Market' },
-                    { video: '/vids/Vid2.mp4', title: 'Sample Visual - Depiciting Market Economy' }
+                    { video: '/vids/Vid2.mp4', title: 'Sample Visual - Depiciting Market Economy' },
+                    { video: '/vids/Vid3.mp4', title: 'Sample Visual - Depiciting Market Economy' }
                 ]
             }
         ]
