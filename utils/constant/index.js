@@ -180,10 +180,10 @@ export const STRUCTURE = [
                 title: 'Research Output',
                 slideCount: 5,
                 slides: [
-                    { image: 'Research Output.png', title: '3X3 Grid Research Outcome' },
-                    { image: 'Research Output-1.png', title: 'Case studies bridging the gaps' },
-                    { image: 'Research Output-2.png', title: 'Case studies contributing to the framework' },
-                    { image: 'Research Output-3.png', title: 'Key Questions & Concerns' }
+                    { image: 'Research Output-1.png', title: '3X3 Grid Research Outcome' },
+                    { image: 'Research Output-2.png', title: 'Case studies bridging the gaps' },
+                    { image: 'Research Output-3.png', title: 'Case studies contributing to the framework' },
+                    { image: 'Research Output.png', title: 'Key Questions & Concerns' }
                 ]
             }
         ]
