@@ -137,34 +137,33 @@ export const STRUCTURE = [
             {
                 id: '5-0',
                 title: 'Case Study 1: SoTA',
-                slideCount: 7,
+                slideCount: 8,
                 slides: [
                     { image: 'Case Study 1-1.png', title: 'Presenting SoTA' },
                     { video: '/vids/SoTA.mp4', title: 'SoTA-Video' },
                     { image: 'Case Study 1-2.png', title: 'Artistic Metaphor' },
                     { image: 'Case Study 1-3.png', title: 'Neural Network Visualisation' },
                     { image: 'Case Study 1-4.png', title: 'Multi-Device Interaction' },
-                    { image: 'Case Study 1-5.png', title: 'Limitations of SoTA' }
+                    { image: 'Case Study 1-5.png', title: 'SoTA User Study' },
+                    { image: 'Case Study 1-6.png', title: 'Limitations of SoTA' },
                 ]
             },
             {
                 id: '5-1',
-                title: 'Case Study 2: Urban Systems',
-                slideCount: 3,
+                title: 'Case Study 2: Ecological System',
+                slideCount: 2,
                 slides: [
-                    { image: 'Case Study 2-1.png', title: 'Presenting Urban Systems' },
-                    { image: 'Case Study 2-2.png', title: 'WIP' }
+                    { image: 'Case Study 2-1.png', title: 'WIP' },
                 ]
             },
             {
                 id: '5-2',
-                title: 'Case Study 3: Economic Systems',
+                title: 'Case Study 3: Economic System',
                 slideCount: 7,
                 slides: [
-                    { image: 'Case Study 3-1.png', title: 'Presenting Economic Systems' },
-                    { image: 'Case Study 3-2.png', title: 'WIP' },
+                    { image: 'Case Study 3-1.png', title: 'WIP' },
+                    { image: 'Case Study 3-2.png', title: 'Macroeconomic SbA' },
                     { image: 'Case Study 3-3.png', title: 'Sample System Dynamics' },
-                    { image: 'Case Study 3-4.png', title: 'Macroeconomic SbA' },
                     { video: '/vids/Vid1.mp4', title: 'Sample Visual - Labour Market' },
                     { video: '/vids/Vid2.mp4', title: 'Sample Visual - Depiciting Market Economy' },
                     { video: '/vids/Vid3.mp4', title: 'Sample Visual - Depiciting Market Economy' }
@@ -181,10 +180,10 @@ export const STRUCTURE = [
                 title: 'Research Output',
                 slideCount: 5,
                 slides: [
-                    { image: 'Research Output 0.png', title: '3X3 Grid Research Outcome' },
-                    { image: 'Research Output 1.png', title: 'Case studies bridging the gaps' },
-                    { image: 'Research Output 2.png', title: 'Case studies contributing to the framework' },
-                    { image: 'Research Output 3.png', title: 'Key Questions & Concerns' }
+                    { image: 'Research Output.png', title: '3X3 Grid Research Outcome' },
+                    { image: 'Research Output-1.png', title: 'Case studies bridging the gaps' },
+                    { image: 'Research Output-2.png', title: 'Case studies contributing to the framework' },
+                    { image: 'Research Output-3.png', title: 'Key Questions & Concerns' }
                 ]
             }
         ]
