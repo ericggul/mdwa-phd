@@ -8,10 +8,11 @@ export const STRUCTURE = [
             {
                 id: '0-0',
                 title: 'Relevance to Design',
-                slideCount: 3,
+                slideCount: 4,
                 slides: [
-                    { image: 'Relevance to Design.png', title: 'Art vs. Design' },
-                    { image: 'Relevance to Design-1.png', title: 'Interactive Art: Art + Design' }
+                    { image: 'Relevance to Design 1.png', title: 'Art vs. Design' },
+                    { image: 'Relevance to Design 2.png', title: 'Interactive Art: Art + Design' },
+                    { image: 'Relevance to Design 3.png', title: 'Existing as artworks, Designed in practice, Engineered in implementation.' },
                 ]
             }
         ]
@@ -125,7 +126,7 @@ export const STRUCTURE = [
                 slides: [
                     { image: 'RtE 1.png', title: 'What is RtE?' },
                     { image: 'RtE 2.png', title: 'PbR vs. RtD vs. RtE' },
-                    { image: 'RtE 3.png', title: 'Knowledge - Artwork Reinforcement Loop' }
+                    { image: 'RtE 3.png', title: 'Building RtD vs. RtE' }
                 ]
             }
         ]
@@ -178,12 +179,13 @@ export const STRUCTURE = [
             {
                 id: '6-0',
                 title: 'Research Output',
-                slideCount: 5,
+                slideCount: 6,
                 slides: [
-                    { image: 'Research Output-1.png', title: '3X3 Grid Research Outcome' },
-                    { image: 'Research Output-2.png', title: 'Case studies bridging the gaps' },
-                    { image: 'Research Output-3.png', title: 'Case studies contributing to the framework' },
-                    { image: 'Research Output.png', title: 'Key Questions & Concerns' }
+                    { image: 'Research Output 1.png', title: '3X3 Grid Research Outcome' },
+                    { image: 'Research Output 2.png', title: 'Case studies bridging the gaps' },
+                    { image: 'Research Output 3.png', title: 'Case studies contributing to the framework' },
+                    { image: 'Research Output 4.png', title: 'Knowledge - Artwork Reinforcement Loop' },
+                    { image: 'Research Output 5.png', title: 'Key Questions & Concerns' },
                 ]
             }
         ]
