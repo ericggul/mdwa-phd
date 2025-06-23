@@ -34,11 +34,12 @@ export const STRUCTURE = [
             {
                 id: '1-1',
                 title: 'Interactive Art',
-                slideCount: 4,
+                slideCount: 5,
                 slides: [
                     { image: 'Interactive Art 1.png', title: 'Why Computational Interactive Art?' },
                     { image: 'Interactive Art 2.png', title: 'References' },
-                    { image: 'Interactive Art 3.png', title: 'Limitations' }
+                    { image: 'Interactive Art 3.png', title: 'Limitations' },
+                    { image: 'Interactive Art 4.png', title: 'Limitations' }
                 ]
             },
             {
